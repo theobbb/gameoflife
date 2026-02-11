@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+@plugin '@iconify/tailwind4';
+
+@theme {
+	--spacing-gap: 1rem;
+	--spacing-gap-y: 0.7rem;
+
+	--color-bg: rgb(16, 16, 16);
+	--color-bg-2: rgb(52, 52, 52);
+
+	--color-text: rgb(227, 227, 227);
+	--color-text-2: rgb(143, 143, 143);
+
+	--color-grid: rgb(0, 0, 0);
+	--color-life: rgb(52, 52, 52);
+}
+
+html {
+	background-color: var(--color-bg);
+	color: var(--color-text);
+
+	font-family: 'Syne';
+
+	-webkit-tap-highlight-color: unset;
+	/* Optional: Prevents layout shift (page jump) caused by the scrollbar disappearing */
+	scrollbar-gutter: stable;
+
+	line-height: 110%;
+
+	--theme: '';
+}
+
+.font-mono {
+	font-family: 'Syne Mono';
+	/* line-height: 100%;
+	font-size: 14px;
+	color: rgb(188, 188, 188); */
+}
+
+.font-tactile {
+	font-family: 'Syne Tactile';
+}
+
+.grid-12 {
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	gap: var(--spacing-gap);
+}
+
+.text-2 {
+	color: var(--color-text-2);
+}

@@ -1,0 +1,83 @@
+html[theme='black'] {
+	--color-bg: rgb(16, 16, 16);
+	--color-bg-2: rgb(52, 52, 52);
+
+	--color-text: rgb(227, 227, 227);
+	--color-text-2: rgb(143, 143, 143);
+
+	--color-grid: rgb(47, 109, 99);
+	--color-grid-hover: rgb(31, 136, 47);
+
+	--color-life-stroke: rgb(27, 27, 27);
+	--color-life-fill: rgb(121, 121, 121);
+}
+
+html[theme='green'] {
+	--color-bg: rgba(25, 103, 94, 1);
+	--color-bg-2: rgba(170, 109, 159, 1);
+
+	--color-text: rgb(236, 191, 228);
+	--color-text-2: rgba(226, 168, 217, 0.541);
+
+	--color-grid: rgba(170, 109, 159, 1);
+	--color-grid-hover: rgb(31, 136, 47);
+
+	--color-life-stroke: rgb(216, 156, 205);
+	--color-life-fill: rgba(216, 156, 205, 0.3);
+}
+
+html[theme='light-blue'] {
+	--color-bg: rgba(123, 146, 146, 1);
+	--color-bg-2: rgba(98, 199, 102, 1);
+
+	--color-text: rgb(30, 44, 31);
+	--color-text-2: rgba(30, 44, 31, 0.486);
+
+	--color-grid: rgba(98, 199, 102, 1);
+	--color-grid-hover: rgb(31, 136, 47);
+
+	--color-life-stroke: rgb(43, 68, 45);
+	--color-life-fill: rgba(43, 68, 45, 0.291);
+}
+
+html[theme='dark-blue'] {
+	--color-bg: rgba(25, 73, 103, 1);
+	--color-bg-2: rgba(120, 120, 120, 1);
+
+	--color-text: rgb(187, 218, 236);
+	--color-text-2: rgba(187, 218, 236, 0.507);
+
+	--color-grid: rgba(120, 120, 120, 1);
+	--color-grid-hover: rgb(31, 136, 47);
+
+	--color-life-stroke: rgb(145, 178, 199);
+	--color-life-fill: rgba(145, 178, 199, 0.329);
+}
+
+html[theme='yellow'] {
+	--color-bg: rgba(154, 164, 73, 1);
+	--color-bg-2: rgba(102, 45, 45, 1);
+
+	--color-text: rgb(76, 21, 21);
+	--color-text-2: rgba(76, 21, 21, 0.518);
+
+	--color-grid: rgba(102, 45, 45, 1);
+	--color-grid-hover: rgb(31, 136, 47);
+
+	--color-life-stroke: rgb(76, 21, 21);
+	--color-life-fill: rgba(76, 21, 21, 0.289);
+}
+
+html[theme='purple'] {
+	--color-bg: rgba(110, 72, 135, 1);
+	--color-bg-2: rgba(190, 87, 87, 1);
+
+	--color-text: rgb(233, 206, 206);
+	--color-text-2: rgba(233, 206, 206, 0.5);
+
+	--color-grid: rgba(190, 87, 87, 1);
+	--color-grid-hover: rgb(31, 136, 47);
+
+	--color-life-stroke: rgb(233, 206, 206);
+	--color-life-fill: rgba(233, 206, 206, 0.3);
+}
