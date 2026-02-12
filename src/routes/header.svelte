@@ -1,3 +1,7 @@
+<script>
+	import Button from '$lib/ui/button.svelte';
+</script>
+
 <header class="pointer-events-none top-0 right-0 left-0 z-10 mb-gap-y">
 	<div class="flex justify-between">
 		<div class="pointer-events-auto flex w-fit flex-col items-end text-3xl/7.5">

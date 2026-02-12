@@ -5,7 +5,7 @@
 
 	import favicon from '$lib/assets/favicon.svg';
 	import { init_engine } from './engine.svelte';
-	import Controls from './controls.svelte';
+	import Controls from './+/controls/controls.svelte';
 	import { onMount, untrack } from 'svelte';
 	import Card from './cards.svelte';
 	import Wiki from './wiki.svelte';
@@ -72,7 +72,7 @@
 	</div>
 {/if}
 
-<div class=" grid min-h-svh grid-rows-[auto_1fr_auto] px-gap py-gap-y">
+<div class="grid min-h-svh grid-rows-[auto_1fr_auto] px-gap py-gap-y">
 	{#if page.route.id != '/'}
 		<Header />
 	{/if}

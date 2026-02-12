@@ -42,28 +42,31 @@
 
 {#snippet content()}
 	{#if raw_pattern && current_group}
-		<div class="relative px-4 py-3 text-text">
-			<div class="mb-2 flex justify-between gap-4">
-				<div class=" text-3xl/7.5">{raw_pattern.name}</div>
-				<div class="font-mono text-text/50">
+		<div class="relative px-4 py-3 text-base/4.5 text-text-card">
+			<div class="flex justify-between gap-4">
+				<div class="text-3xl/7.5">{raw_pattern.name}</div>
+				<div class="mt-0.5 font-mono text-sm/4.5 text-text-card/60">
 					{(pattern?.index || 0) + 1}/{current_group.children.length}
 				</div>
 			</div>
-			<div class="text-text/50">{raw_pattern.author}</div>
+			<div class="mt-1 ml-px text-text-card/60">Découvert par {raw_pattern.author || '??'}</div>
 
-			<div class="mt-12">
+			<div class="mt-12 mb-6 text-balance">
 				{#each raw_pattern.comments as comment}
 					<div>{comment}</div>
 				{/each}
 			</div>
-			<div class="grid-12 mt-4 grid">
-				<div class="col-span-8 font-mono text-text/50">
+			<div class="grid-12 grid">
+				<div class="col-span-8 font-mono text-sm/4.5 text-text-card/60">
 					<div>{raw_pattern.width}x{raw_pattern.height}</div>
 					<div>{pixel_count} cellules</div>
 				</div>
 				<div class="col-span-4">
 					<CardGrid pattern={raw_pattern} />
 				</div>
+			</div>
+			<div class="absolute inset-gap -z-10 opacity-15 blur">
+				<CardGrid pattern={raw_pattern} />
 			</div>
 		</div>
 	{/if}

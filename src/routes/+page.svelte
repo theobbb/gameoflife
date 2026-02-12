@@ -25,7 +25,7 @@
 	});
 </script>
 
-<div class="text-lg/5.5 text-balance">
+<div class="text-lg/6 text-balance">
 	<div class="grid-12 my-24">
 		<div class="col-span-6 flex flex-col items-end justify-end pr-gap text-5xl">
 			<div>Le jeu de la vie</div>
@@ -60,84 +60,89 @@
 			Toutes les cellules sont mises à jour en même temps, puis on recommence à l’étape suivante.
 		</div> -->
 	</div>
-	<div class="grid-12 gap-y-0!">
-		<div class=" relative z-10 col-span-3 col-start-2">
-			<!-- <div class="absolute top-4.5 right-0 left-0 h-0.5 translate-x-1/2 bg-text"></div> -->
-			<div class="flex w-fit items-center gap-3.5 bg-bg">
-				<div class="text-3xl">Les règles du jeu</div>
-				<div class="dot -mb-1"></div>
+	<div class="relative -mx-gap bg-bg px-gap py-8" style="--color-bg: oklch(20.5% 0 0);">
+		<div class="grid-12 gap-y-0!">
+			<div class=" relative z-10 col-span-3 col-start-2">
+				<!-- <div class="absolute top-4.5 right-0 left-0 h-0.5 translate-x-1/2 bg-text"></div> -->
+				<div class="flex w-fit items-center gap-3.5 bg-bg">
+					<div class="text-3xl">Les règles du jeu</div>
+					<div class="dot -mb-1"></div>
+				</div>
 			</div>
+			<div class="relative col-span-4 mt-4.5 flex flex-col items-center text-center">
+				<div class="absolute top-0 right-0 left-0 h-0.5 -translate-x-1/2 bg-text-2"></div>
+				<div class="line-y mb-4"></div>
+
+				<div class="max-w-md">
+					À chaque génération, on regarde chaque cellule et ses voisines immédiates
+				</div>
+				<div class="dot mt-4"></div>
+				<div class="line-y"></div>
+			</div>
+			<div class="col-span-3"></div>
+			{#each rules as [group_name, rule_group], group_i}
+				<div class={['col-span-3 flex flex-col px-4', group_i == 0 && 'col-start-4']}>
+					<div class="relative mb-4 flex flex-col items-center text-center">
+						<div
+							class={[
+								'absolute top-0 right-0 left-0 h-0.5  bg-text-2',
+								group_i == 0 ? 'translate-x-1/2' : '-translate-x-1/2'
+							]}
+						></div>
+
+						<div class="mb-3 h-12 w-0.5 bg-text-2"></div>
+
+						<div>
+							<span class="text-2 mr-0.5">{group_name.split(' ')[0]}</span>
+							<span>{group_name.split(' ')[1]}</span>
+						</div>
+					</div>
+					<div class="w-full space-y-gap-y">
+						{#each rule_group as [n_neighbours, consequence, type, data], i}
+							<div
+								class={[
+									'text-xl- flex min-h-16 w-full flex-col gap-8 rounded border px-3 py-1.5 pb-3 font-medium',
+									type == 'life'
+										? 'border-green-900 bg-green-600/10 text-green-600'
+										: 'border-red-900 bg-red-700/10 text-red-700'
+								]}
+							>
+								<div class="flex w-full justify-between gap-16">
+									<div class="text-2-">
+										<span class="font-mono">{n_neighbours}</span> voisins
+									</div>
+									<div class="">{consequence}</div>
+								</div>
+								<div class="flex items-center justify-between gap-6">
+									{@render grid_renderer(data[0], 0, type, group_i)}
+									<div class="icon-[ri--arrow-right-line] text-2xl"></div>
+									{@render grid_renderer(data[1], 1, type, group_i)}
+								</div>
+							</div>
+						{/each}
+					</div>
+					<div class="relative flex h-full min-h-20 flex-col items-center">
+						<div class="dot mt-4 shrink-0 grow-0"></div>
+						<div class="line-y h-full!"></div>
+						<div
+							class={[
+								'absolute right-0 bottom-0 left-0 h-0.5  bg-text-2',
+								group_i == 0 ? 'translate-x-1/2' : '-translate-x-1/2'
+							]}
+						></div>
+					</div>
+				</div>
+			{/each}
 		</div>
-		<div class="relative col-span-4 mt-4.5 flex flex-col items-center text-center">
-			<div class="absolute top-0 right-0 left-0 h-0.5 -translate-x-1/2 bg-text-2"></div>
+		<div class="relative mb-12 flex flex-col items-center justify-center text-center">
 			<div class="line-y mb-4"></div>
 
 			<div class="max-w-md">
-				À chaque génération, on regarde chaque cellule et ses voisines immédiates
+				Toutes les cellules sont mises à jour en même temps, puis on recommence à l’étape suivante.
 			</div>
-			<div class="dot mt-4"></div>
+			<!-- <div class="dot mt-4"></div>
 			<div class="line-y"></div>
-		</div>
-		<div class="col-span-3"></div>
-		{#each rules as [group_name, rule_group], group_i}
-			<div class={['col-span-3 flex flex-col px-4', group_i == 0 && 'col-start-4']}>
-				<div class="relative mb-4 flex flex-col items-center text-center">
-					<div
-						class={[
-							'absolute top-0 right-0 left-0 h-0.5  bg-text-2',
-							group_i == 0 ? 'translate-x-1/2' : '-translate-x-1/2'
-						]}
-					></div>
-
-					<div class="mb-3 h-12 w-0.5 bg-text-2"></div>
-
-					<div>
-						<span class="text-2 mr-0.5">{group_name.split(' ')[0]}</span>
-						<span>{group_name.split(' ')[1]}</span>
-					</div>
-				</div>
-				<div class="w-full space-y-gap-y">
-					{#each rule_group as [n_neighbours, consequence, type, data], i}
-						<div
-							class={[
-								'text-xl- flex min-h-16 w-full flex-col gap-8 rounded border px-3 py-1.5 pb-3 font-medium',
-								type == 'life'
-									? 'border-green-900 bg-green-600/10 text-green-600'
-									: 'border-red-900 bg-red-700/10 text-red-700'
-							]}
-						>
-							<div class="flex w-full justify-between gap-16">
-								<div class="text-2-">
-									<span class="font-mono">{n_neighbours}</span> voisins
-								</div>
-								<div class="">{consequence}</div>
-							</div>
-							<div class="flex items-center justify-between gap-6">
-								{@render grid_renderer(data[0], 0, type, group_i)}
-								<div class="icon-[ri--arrow-right-line] text-2xl"></div>
-								{@render grid_renderer(data[1], 1, type, group_i)}
-							</div>
-						</div>
-					{/each}
-				</div>
-				<div class="relative flex h-full min-h-20 flex-col items-center">
-					<div class="dot mt-4 shrink-0 grow-0"></div>
-					<div class="line-y h-full!"></div>
-					<div
-						class={[
-							'absolute right-0 bottom-0 left-0 h-0.5  bg-text-2',
-							group_i == 0 ? 'translate-x-1/2' : '-translate-x-1/2'
-						]}
-					></div>
-				</div>
-			</div>
-		{/each}
-	</div>
-	<div class=" mb-24 flex flex-col items-center justify-center text-center">
-		<div class="line-y mb-4"></div>
-
-		<div class="max-w-md">
-			Toutes les cellules sont mises à jour en même temps, puis on recommence à l’étape suivante.
+			<div class="absolute bottom-0 left-0 h-0.5 w-1/2 translate-x-full bg-text-2"></div> -->
 		</div>
 	</div>
 

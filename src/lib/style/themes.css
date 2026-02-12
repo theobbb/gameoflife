@@ -4,6 +4,7 @@ html[theme='black'] {
 
 	--color-text: rgb(227, 227, 227);
 	--color-text-2: rgb(143, 143, 143);
+	--color-text-card: white;
 
 	--color-grid: rgb(47, 109, 99);
 	--color-grid-hover: rgb(31, 136, 47);
@@ -18,6 +19,7 @@ html[theme='green'] {
 
 	--color-text: rgb(236, 191, 228);
 	--color-text-2: rgba(226, 168, 217, 0.541);
+	--color-text-card: rgb(82, 57, 78);
 
 	--color-grid: rgba(170, 109, 159, 1);
 	--color-grid-hover: rgb(31, 136, 47);
@@ -28,12 +30,13 @@ html[theme='green'] {
 
 html[theme='light-blue'] {
 	--color-bg: rgba(123, 146, 146, 1);
-	--color-bg-2: rgba(98, 199, 102, 1);
+	--color-bg-2: rgb(93, 177, 96);
 
 	--color-text: rgb(30, 44, 31);
 	--color-text-2: rgba(30, 44, 31, 0.486);
+	--color-text-card: rgb(213, 246, 214);
 
-	--color-grid: rgba(98, 199, 102, 1);
+	--color-grid: rgb(93, 177, 96);
 	--color-grid-hover: rgb(31, 136, 47);
 
 	--color-life-stroke: rgb(43, 68, 45);
@@ -46,6 +49,7 @@ html[theme='dark-blue'] {
 
 	--color-text: rgb(187, 218, 236);
 	--color-text-2: rgba(187, 218, 236, 0.507);
+	--color-text-card: rgb(40, 40, 40);
 
 	--color-grid: rgba(120, 120, 120, 1);
 	--color-grid-hover: rgb(31, 136, 47);
@@ -60,6 +64,7 @@ html[theme='yellow'] {
 
 	--color-text: rgb(76, 21, 21);
 	--color-text-2: rgba(76, 21, 21, 0.518);
+	--color-text-card: rgb(219, 140, 140);
 
 	--color-grid: rgba(102, 45, 45, 1);
 	--color-grid-hover: rgb(31, 136, 47);
@@ -74,6 +79,7 @@ html[theme='purple'] {
 
 	--color-text: rgb(233, 206, 206);
 	--color-text-2: rgba(233, 206, 206, 0.5);
+	--color-text-card: rgb(96, 41, 41);
 
 	--color-grid: rgba(190, 87, 87, 1);
 	--color-grid-hover: rgb(31, 136, 47);

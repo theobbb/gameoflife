@@ -3,17 +3,18 @@ import type { Pattern } from '$lib/types';
 import { rgbaToString, type RGBA } from '$lib/utils/color';
 import { getContext, setContext } from 'svelte';
 
-export const TIME_SCALE = [1.0, 0.1, 4.0];
 // --- CONSTANTS ---
 const BASE_CELL_SIZE = 20;
-export const STIFFNESS = [2, 0.5, 6];
-export const DAMPING = [0.2, 0.1, 0.5];
+const STIFFNESS = 2;
+const DAMPING = 0.2;
 
 // Metaball parameters
-export const METABALL_RADIUS = [0.4, 0.2, 0.6];
-export const METABALL_THRESHOLD = [1.0, 0.5, 2.0];
-export const RENDER_RESOLUTION = [4, 1, 6];
-export const INFLUENCE_RADIUS = [6.0, 1.0, 12.0];
+const METABALL_RADIUS = BASE_CELL_SIZE * 0.4;
+const METABALL_RADIUS_SQ = METABALL_RADIUS * METABALL_RADIUS;
+const METABALL_THRESHOLD = 1.0;
+//const RENDER_RESOLUTION = 4;
+const RENDER_RESOLUTION = 4;
+const INFLUENCE_RADIUS = METABALL_RADIUS * 6.0;
 
 const ANIMATION_DURATION = 500; // ms to morph between states
 const UPDATE_INTERVAL = 100; // ms between generations (at 1x speed)
@@ -42,13 +43,14 @@ type Cell = {
 	alpha: number;
 	scale: number;
 	dying: boolean;
-	isManual?: boolean;
+	isManual?: boolean; // New flag for manual interaction
 };
 
 export class Engine {
 	// --- STATE (Runes) ---
-	// controls.playing = $state(false);
-	//controls.time_scale = $state(1.0); // 1.0 = Normal, 2.0 = Fast, 0.5 = Slow
+	isPlaying = $state(false);
+	zoom_level = $state(4);
+	time_scale = $state(1.0); // 1.0 = Normal, 2.0 = Fast, 0.5 = Slow
 
 	stats: { n_gens: number } = $state({ n_gens: 0 });
 	current_pattern: Pattern | null = $state(null);
@@ -57,13 +59,11 @@ export class Engine {
 	controls = $state({
 		playing: false,
 		zoom_level: 4.0,
-		time_scale: TIME_SCALE[0],
-		stiffness: STIFFNESS[0],
-		damping: DAMPING[0],
-		metaball_radius: METABALL_RADIUS[0],
-		metaball_threshold: METABALL_THRESHOLD[0],
-		render_resolution: RENDER_RESOLUTION[0],
-		influence_radius: INFLUENCE_RADIUS[0]
+		time_scale: 1.0,
+		metaball_radius: 0.4,
+		metaball_threshold: 1.0,
+		render_resolution: 4,
+		influence_radius: 6.0
 	});
 
 	private METABALL_RADIUS = $derived(BASE_CELL_SIZE * this.controls.metaball_radius);
@@ -103,19 +103,19 @@ export class Engine {
 	private target_pan: Vector2 = { x: 0, y: 0 };
 
 	// Input State
-	private hover_pos: { col: number; row: number } | null = null;
+	private hover_pos: { col: number; row: number } | null = null; // New Hover State
 
 	// Loop & Time Logic
 	private lastFrameTime = 0;
-	private timeSinceLastUpdate = 0;
+	private timeSinceLastUpdate = 0; // Accumulator for generation ticks
 
 	private isAnimating = false;
-	private animationProgress = 0;
+	private animationProgress = 0; // 0.0 to 1.0
 
 	private isMouseDown = false;
 
 	private currentColors = {
-		background: { r: 17, g: 17, b: 17, a: 1 },
+		background: { r: 17, g: 17, b: 17, a: 1 }, // Default #111111
 		grid: { r: 255, g: 255, b: 255, a: 0.2 },
 		grid_hover: { r: 255, g: 255, b: 255, a: 0.2 },
 		life_stroke: { r: 255, g: 255, b: 255, a: 0.85 },
@@ -125,41 +125,49 @@ export class Engine {
 		active: false,
 		startTime: 0,
 		duration: 0,
-		startColors: { ...this.currentColors },
-		targetColors: { ...this.currentColors }
+		startColors: { ...this.currentColors }, // Snapshot of where we started
+		targetColors: { ...this.currentColors } // Where we are going
 	};
 
 	constructor() {
-		this.target_zoom = this.controls.zoom_level;
+		this.target_zoom = this.zoom_level;
 	}
 
 	mount(canvas: HTMLCanvasElement) {
 		if (this.initialized) return;
+		//if (this.canvas === canvas) return;
 
 		this.canvas = canvas;
 		this.ctx = canvas.getContext('2d', { alpha: false }) as CanvasRenderingContext2D;
 
+		// Setup Dimensions
 		this.canvas_rect = canvas.getBoundingClientRect();
 		this.width = this.canvas_rect.width;
 		this.height = this.canvas_rect.height;
 		this.canvas.width = this.width;
 		this.canvas.height = this.height;
 
+		// Calculate Grid Dimensions
 		this.COLS = Math.floor(this.width / this.CELL_SIZE);
 		this.ROWS = Math.floor(this.height / this.CELL_SIZE);
 
+		// Init Camera Center
 		this.pan_offset = {
-			x: this.width / 2 - (this.width * this.controls.zoom_level) / 2,
-			y: this.height / 2 - (this.height * this.controls.zoom_level) / 2
+			x: this.width / 2 - (this.width * this.zoom_level) / 2,
+			y: this.height / 2 - (this.height * this.zoom_level) / 2
 		};
 		this.target_pan = { ...this.pan_offset };
 
 		this.initGrid();
 		this.setupListeners();
+
 		this.get_theme();
+
 		this.syncVisualCells();
+
 		this.centerView(100);
 
+		// Start Loop
 		this.lastFrameTime = performance.now();
 		this.animate(this.lastFrameTime);
 
@@ -168,6 +176,8 @@ export class Engine {
 	}
 
 	private get_theme() {
+		// --- SYNC INITIAL THEME FROM DOM ---
+		// Grab whatever is currently set on HTML or fallback
 		const styles = getComputedStyle(document.documentElement);
 		const bg = styles.getPropertyValue('--color-bg').trim();
 		const grid = styles.getPropertyValue('--color-grid').trim();
@@ -176,14 +186,16 @@ export class Engine {
 		const life_fill = styles.getPropertyValue('--color-life-fill').trim();
 
 		if (bg) this.currentColors.background = this.parseCssColor(bg);
+		// Note: We default grid alpha to 0.2 and blob to 0.85 if the CSS passes opaque RGB
 		if (grid) this.currentColors.grid = this.parseCssColor(grid);
 		if (grid_hover) this.currentColors.grid_hover = this.parseCssColor(grid_hover);
 		if (life_stroke) this.currentColors.life_stroke = this.parseCssColor(life_stroke);
 		if (life_fill) this.currentColors.life_fill = this.parseCssColor(life_fill);
 	}
-
 	private parseCssColor(cssString: string, defaultAlpha = 1): RGBA {
 		if (!cssString) return { r: 0, g: 0, b: 0, a: 1 };
+
+		// Matches rgb(r, g, b) or rgba(r, g, b, a)
 		const match = cssString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
 
 		if (match) {
@@ -194,7 +206,7 @@ export class Engine {
 				a: match[4] ? parseFloat(match[4]) : defaultAlpha
 			};
 		}
-		return { r: 0, g: 0, b: 0, a: 1 };
+		return { r: 0, g: 0, b: 0, a: 1 }; // Fallback
 	}
 
 	destroy() {
@@ -268,18 +280,24 @@ export class Engine {
 
 	private animate = (currentTime: number) => {
 		this.animationId = requestAnimationFrame(this.animate);
+
 		this.processColorTransition(currentTime);
 
 		let deltaTime = currentTime - this.lastFrameTime;
 		this.lastFrameTime = currentTime;
 
 		if (document.hidden) return;
+		// Cap physics step to avoid explosions if tab was backgrounded
 		if (deltaTime > 50) deltaTime = 50;
 
-		const simDelta = deltaTime * this.controls.time_scale;
+		// 1. Calculate Simulation Delta (Time * Scale)
+		const simDelta = deltaTime * this.time_scale;
 
+		// 2. Advance Animation Progress
 		if (this.isAnimating) {
+			// Add percentage of completion based on simDelta
 			this.animationProgress += simDelta / ANIMATION_DURATION;
+
 			if (this.animationProgress >= 1) {
 				this.animationProgress = 1;
 				this.completeTransition();
@@ -287,13 +305,19 @@ export class Engine {
 		}
 
 		this.updateCamera();
-		this.updatePhysics(deltaTime, this.controls.time_scale);
+
+		// 3. Update Physics (Wobble/Move) using scaled time
+		this.updatePhysics(deltaTime, this.time_scale);
+
 		this.draw();
 
-		if (this.controls.playing && !this.isAnimating) {
+		// 4. Trigger Next Generation
+		if (this.isPlaying && !this.isAnimating) {
 			this.timeSinceLastUpdate += simDelta;
+
 			if (this.timeSinceLastUpdate > UPDATE_INTERVAL) {
 				this.updateGrid();
+				// Consume the interval, keep remainder
 				this.timeSinceLastUpdate -= UPDATE_INTERVAL;
 			}
 		}
@@ -309,6 +333,7 @@ export class Engine {
 		}
 		this.stats.n_gens++;
 
+		// Start Transition
 		this.isAnimating = true;
 		this.animationProgress = 0;
 		this.syncVisualCells();
@@ -344,14 +369,14 @@ export class Engine {
 							phase: Math.random() * Math.PI * 2,
 							phaseSpeed: 0.5 + Math.random() * 0.5,
 							alpha: 1,
-							scale: 0.1,
+							scale: 0.1, // Start small for pop-in effect
 							dying: false,
-							isManual: true
+							isManual: true // Mark as manual so it grows via physics, not animation loop
 						});
 					}
 				}
 
-				// Cells about to be born
+				// Cells about to be born (Animation Pre-calculation for Next Gen)
 				if (!isAlive && willBeAlive && this.isAnimating) {
 					if (!this.visualCells.has(key)) {
 						const targetX = col * this.CELL_SIZE + this.CELL_SIZE / 2;
@@ -371,7 +396,7 @@ export class Engine {
 							alpha: 1,
 							scale: 0.5,
 							dying: false,
-							isManual: false
+							isManual: false // These are born naturally
 						});
 						currentKeys.add(key);
 					}
@@ -392,6 +417,7 @@ export class Engine {
 			}
 		}
 
+		// Cleanup dead visual cells if we aren't animating
 		if (!this.isAnimating) {
 			for (const key of this.visualCells.keys()) {
 				if (!currentKeys.has(key)) this.visualCells.delete(key);
@@ -421,13 +447,7 @@ export class Engine {
 	private updatePhysics(dt: number, scale: number) {
 		const tSec = (dt / 1000) * scale;
 
-		// --- OPTIMIZATION START ---
-		// Snapshot reactive values to avoid Proxy overhead in the loop
-		const STIFFNESS = this.controls.stiffness;
-		const DAMPING = this.controls.damping;
-		const CELL_SIZE = this.CELL_SIZE;
-		// --- OPTIMIZATION END ---
-
+		// Cubic ease in/out for Game of Life steps
 		const progress = this.isAnimating
 			? this.animationProgress < 0.5
 				? 4 * this.animationProgress ** 3
@@ -441,18 +461,22 @@ export class Engine {
 			const wobbleY = Math.cos(cell.phase * 1.3) * wobbleAmount;
 
 			if (!cell.dying) {
-				cell.targetX = cell.gridX * CELL_SIZE + CELL_SIZE / 2 + wobbleX;
-				cell.targetY = cell.gridY * CELL_SIZE + CELL_SIZE / 2 + wobbleY;
+				cell.targetX = cell.gridX * this.CELL_SIZE + this.CELL_SIZE / 2 + wobbleX;
+				cell.targetY = cell.gridY * this.CELL_SIZE + this.CELL_SIZE / 2 + wobbleY;
 
+				// Scale Logic
 				if (cell.isManual) {
+					// Manual Spawn: Smooth spring-like growth regardless of game loop state
 					cell.scale += (1 - cell.scale) * 15 * tSec;
 					if (cell.scale > 0.99) {
 						cell.scale = 1;
 						cell.isManual = false;
 					}
 				} else if (this.isAnimating && cell.scale < 1) {
+					// Natural Birth: Sync with game loop
 					cell.scale = this.lerp(0.5, 1, progress);
 				} else if (!this.isAnimating && !cell.isManual) {
+					// Idle state
 					cell.scale = 1;
 				}
 			} else {
@@ -464,12 +488,9 @@ export class Engine {
 
 			const dx = cell.targetX - cell.x;
 			const dy = cell.targetY - cell.y;
-
-			// Use local STIFFNESS
 			cell.vx += ((dx * STIFFNESS) / 4) * tSec;
 			cell.vy += ((dy * STIFFNESS) / 4) * tSec;
 
-			// Use local DAMPING
 			const d = Math.pow(DAMPING, tSec);
 			cell.vx *= d;
 			cell.vy *= d;
@@ -479,12 +500,11 @@ export class Engine {
 	}
 
 	private updateCamera() {
-		this.controls.zoom_level += (this.target_zoom - this.controls.zoom_level) * CAMERA_SMOOTHING;
+		this.zoom_level += (this.target_zoom - this.zoom_level) * CAMERA_SMOOTHING;
 		this.pan_offset.x += (this.target_pan.x - this.pan_offset.x) * CAMERA_SMOOTHING;
 		this.pan_offset.y += (this.target_pan.y - this.pan_offset.y) * CAMERA_SMOOTHING;
 
-		if (Math.abs(this.target_zoom - this.controls.zoom_level) < 0.001)
-			this.controls.zoom_level = this.target_zoom;
+		if (Math.abs(this.target_zoom - this.zoom_level) < 0.001) this.zoom_level = this.target_zoom;
 		if (Math.abs(this.target_pan.x - this.pan_offset.x) < 0.1)
 			this.pan_offset.x = this.target_pan.x;
 		if (Math.abs(this.target_pan.y - this.pan_offset.y) < 0.1)
@@ -493,34 +513,19 @@ export class Engine {
 
 	// --- DRAWING (Metaballs) ---
 
-	private getEdgePoint(
-		x1: number,
-		y1: number,
-		val1: number,
-		x2: number,
-		y2: number,
-		val2: number,
-		threshold: number
-	) {
+	private getEdgePoint(x1: number, y1: number, val1: number, x2: number, y2: number, val2: number) {
 		if (Math.abs(val1 - val2) < 0.001) return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
-		const t = (threshold - val1) / (val2 - val1);
+		const t = (METABALL_THRESHOLD - val1) / (val2 - val1);
 		return { x: this.lerp(x1, x2, t), y: this.lerp(y1, y2, t) };
 	}
 
 	private drawMetaballs(startRow: number, endRow: number, startCol: number, endCol: number) {
-		// --- OPTIMIZATION START ---
-		// Snapshot these values! Accessing $derived inside loops kills performance.
-		const METABALL_RADIUS_SQ = this.METABALL_RADIUS_SQ;
-		const METABALL_THRESHOLD = this.METABALL_THRESHOLD;
-		const RENDER_RESOLUTION = this.RENDER_RESOLUTION;
-		const INFLUENCE_RADIUS = this.INFLUENCE_RADIUS;
-		const CELL_SIZE = this.CELL_SIZE;
-		// --- OPTIMIZATION END ---
-
-		const startX = startCol * CELL_SIZE;
-		const startY = startRow * CELL_SIZE;
-		const endX = endCol * CELL_SIZE;
-		const endY = endRow * CELL_SIZE;
+		// ... [Keep the initial buffer calculation logic exactly the same] ...
+		// (Copy the first half of the previous function up until "const ctx = this.ctx!;" )
+		const startX = startCol * this.CELL_SIZE;
+		const startY = startRow * this.CELL_SIZE;
+		const endX = endCol * this.CELL_SIZE;
+		const endY = endRow * this.CELL_SIZE;
 
 		const bufW = Math.ceil((endX - startX) / RENDER_RESOLUTION) + 1;
 		const bufH = Math.ceil((endY - startY) / RENDER_RESOLUTION) + 1;
@@ -532,7 +537,7 @@ export class Engine {
 		this.fieldWidth = bufW;
 		this.fieldHeight = bufH;
 
-		// 1. Calculate Field Strengths (Use local vars)
+		// 1. Calculate Field Strengths (Heavy Math - Done Once)
 		for (const cell of this.visualCells.values()) {
 			if (
 				cell.x < startX - INFLUENCE_RADIUS ||
@@ -574,7 +579,7 @@ export class Engine {
 		// =========================================
 		// PASS 1: FILL (Polygons + Solid Rects)
 		// =========================================
-		ctx.fillStyle = rgbaToString(this.currentColors.life_fill);
+		ctx.fillStyle = rgbaToString(this.currentColors.life_fill); // 🟢 INSIDE COLOR
 		ctx.beginPath();
 
 		for (let by = 0; by < bufH - 1; by++) {
@@ -598,21 +603,21 @@ export class Engine {
 
 				const x = startX + bx * RENDER_RESOLUTION;
 
+				// Optimization: Solid block
 				if (caseId === 15) {
 					ctx.rect(x, y, RENDER_RESOLUTION, RENDER_RESOLUTION);
 					continue;
 				}
 
-				// Interpolation using local METABALL_THRESHOLD
-				const top = this.getEdgePoint(x, y, tl, x + RENDER_RESOLUTION, y, tr, METABALL_THRESHOLD);
+				// Interpolation
+				const top = this.getEdgePoint(x, y, tl, x + RENDER_RESOLUTION, y, tr);
 				const right = this.getEdgePoint(
 					x + RENDER_RESOLUTION,
 					y,
 					tr,
 					x + RENDER_RESOLUTION,
 					y + RENDER_RESOLUTION,
-					br,
-					METABALL_THRESHOLD
+					br
 				);
 				const bottom = this.getEdgePoint(
 					x + RENDER_RESOLUTION,
@@ -620,11 +625,11 @@ export class Engine {
 					br,
 					x,
 					y + RENDER_RESOLUTION,
-					bl,
-					METABALL_THRESHOLD
+					bl
 				);
-				const left = this.getEdgePoint(x, y + RENDER_RESOLUTION, bl, x, y, tl, METABALL_THRESHOLD);
+				const left = this.getEdgePoint(x, y + RENDER_RESOLUTION, bl, x, y, tl);
 
+				// Closed loops for filling (Connect to corners)
 				switch (caseId) {
 					case 1:
 						ctx.moveTo(top.x, top.y);
@@ -722,10 +727,10 @@ export class Engine {
 		// =========================================
 		// PASS 2: STROKE (Contours Only)
 		// =========================================
-		ctx.lineWidth = 3 / this.controls.zoom_level;
+		ctx.lineWidth = 3 / this.zoom_level;
 		ctx.lineCap = 'round';
 		ctx.lineJoin = 'round';
-		ctx.strokeStyle = rgbaToString(this.currentColors.life_stroke);
+		ctx.strokeStyle = rgbaToString(this.currentColors.life_stroke); // 🔴 OUTLINE COLOR
 
 		ctx.beginPath();
 
@@ -746,19 +751,20 @@ export class Engine {
 				if (br >= METABALL_THRESHOLD) caseId |= 4;
 				if (bl >= METABALL_THRESHOLD) caseId |= 8;
 
+				// Skip Empty OR Solid Blocks (We only want edges)
 				if (caseId === 0 || caseId === 15) continue;
 
 				const x = startX + bx * RENDER_RESOLUTION;
 
-				const top = this.getEdgePoint(x, y, tl, x + RENDER_RESOLUTION, y, tr, METABALL_THRESHOLD);
+				// Recalculate interpolation (Cheaper than storing objects)
+				const top = this.getEdgePoint(x, y, tl, x + RENDER_RESOLUTION, y, tr);
 				const right = this.getEdgePoint(
 					x + RENDER_RESOLUTION,
 					y,
 					tr,
 					x + RENDER_RESOLUTION,
 					y + RENDER_RESOLUTION,
-					br,
-					METABALL_THRESHOLD
+					br
 				);
 				const bottom = this.getEdgePoint(
 					x + RENDER_RESOLUTION,
@@ -766,11 +772,11 @@ export class Engine {
 					br,
 					x,
 					y + RENDER_RESOLUTION,
-					bl,
-					METABALL_THRESHOLD
+					bl
 				);
-				const left = this.getEdgePoint(x, y + RENDER_RESOLUTION, bl, x, y, tl, METABALL_THRESHOLD);
+				const left = this.getEdgePoint(x, y + RENDER_RESOLUTION, bl, x, y, tl);
 
+				// Simple lines for stroking
 				switch (caseId) {
 					case 1:
 					case 14:
@@ -824,41 +830,43 @@ export class Engine {
 		if (!this.ctx) return;
 		const ctx = this.ctx;
 
-		// --- OPTIMIZATION START ---
-		const ZOOM = this.controls.zoom_level;
-		const PAN_X = this.pan_offset.x;
-		const PAN_Y = this.pan_offset.y;
-		const CELL_SIZE = this.CELL_SIZE;
-		// --- OPTIMIZATION END ---
-
 		ctx.fillStyle = rgbaToString(this.currentColors.background);
 		ctx.fillRect(0, 0, this.width, this.height);
 		ctx.save();
-		ctx.translate(PAN_X, PAN_Y);
-		ctx.scale(ZOOM, ZOOM);
+		ctx.translate(this.pan_offset.x, this.pan_offset.y);
+		ctx.scale(this.zoom_level, this.zoom_level);
 
 		const margin = 2;
-		const startCol = Math.max(0, Math.floor(-PAN_X / ZOOM / CELL_SIZE) - margin);
-		const endCol = Math.min(this.COLS, Math.ceil((this.width - PAN_X) / ZOOM / CELL_SIZE) + margin);
-		const startRow = Math.max(0, Math.floor(-PAN_Y / ZOOM / CELL_SIZE) - margin);
+		const startCol = Math.max(
+			0,
+			Math.floor(-this.pan_offset.x / this.zoom_level / this.CELL_SIZE) - margin
+		);
+		const endCol = Math.min(
+			this.COLS,
+			Math.ceil((this.width - this.pan_offset.x) / this.zoom_level / this.CELL_SIZE) + margin
+		);
+		const startRow = Math.max(
+			0,
+			Math.floor(-this.pan_offset.y / this.zoom_level / this.CELL_SIZE) - margin
+		);
 		const endRow = Math.min(
 			this.ROWS,
-			Math.ceil((this.height - PAN_Y) / ZOOM / CELL_SIZE) + margin
+			Math.ceil((this.height - this.pan_offset.y) / this.zoom_level / this.CELL_SIZE) + margin
 		);
 
-		if (ZOOM > 0.5) {
+		if (this.zoom_level > 0.5) {
 			ctx.strokeStyle = rgbaToString(this.currentColors.grid);
-			ctx.lineWidth = 0.5 / ZOOM;
+			ctx.lineWidth = 0.5 / this.zoom_level;
 			ctx.beginPath();
 			for (let i = startRow; i <= endRow; i++) {
-				const y = i * CELL_SIZE;
-				ctx.moveTo(startCol * CELL_SIZE, y);
-				ctx.lineTo(endCol * CELL_SIZE, y);
+				const y = i * this.CELL_SIZE;
+				ctx.moveTo(startCol * this.CELL_SIZE, y);
+				ctx.lineTo(endCol * this.CELL_SIZE, y);
 			}
 			for (let i = startCol; i <= endCol; i++) {
-				const x = i * CELL_SIZE;
-				ctx.moveTo(x, startRow * CELL_SIZE);
-				ctx.lineTo(x, endRow * CELL_SIZE);
+				const x = i * this.CELL_SIZE;
+				ctx.moveTo(x, startRow * this.CELL_SIZE);
+				ctx.lineTo(x, endRow * this.CELL_SIZE);
 			}
 			ctx.stroke();
 		}
@@ -867,14 +875,15 @@ export class Engine {
 		if (this.hover_pos) {
 			const { col, row } = this.hover_pos;
 			if (col >= 0 && col < this.COLS && row >= 0 && row < this.ROWS) {
-				const x = col * CELL_SIZE;
-				const y = row * CELL_SIZE;
-				ctx.fillStyle = rgbaToString(this.currentColors.grid_hover); // Used theme hover color
+				const x = col * this.CELL_SIZE;
+				const y = row * this.CELL_SIZE;
+				ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
 				ctx.beginPath();
+				// Use roundRect if available in your target browser, else rect
 				if (ctx.roundRect) {
-					ctx.roundRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4, 4);
+					ctx.roundRect(x + 2, y + 2, this.CELL_SIZE - 4, this.CELL_SIZE - 4, 4);
 				} else {
-					ctx.rect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+					ctx.rect(x + 2, y + 2, this.CELL_SIZE - 4, this.CELL_SIZE - 4);
 				}
 				ctx.fill();
 			}
@@ -890,13 +899,13 @@ export class Engine {
 	// --- CONTROLS ---
 
 	togglePlay = () => {
-		this.controls.playing = !this.controls.playing;
-		if (this.controls.playing) this.timeSinceLastUpdate = 0;
+		this.isPlaying = !this.isPlaying;
+		if (this.isPlaying) this.timeSinceLastUpdate = 0; // Reset accumulator on play
 		this.draw();
 	};
 
 	pause = () => {
-		if (this.controls.playing) this.togglePlay();
+		if (this.isPlaying) this.togglePlay();
 	};
 
 	next_frame = () => {
@@ -905,11 +914,13 @@ export class Engine {
 
 	drawPattern(rle_pattern: Pattern, theme?: string) {
 		console.log('drawing pattern...', rle_pattern);
+		// 1. Reset Physics Clocks
 		this.isAnimating = false;
 		this.animationProgress = 0;
 		this.timeSinceLastUpdate = 0;
 
 		if (theme) this.setTheme(theme);
+		// 2. Load Data
 		this.current_pattern = rle_pattern;
 		this.stats.n_gens = 0;
 		this.initGrid();
@@ -992,8 +1003,8 @@ export class Engine {
 	}
 
 	private screenToGrid(screenX: number, screenY: number) {
-		const worldX = (screenX - this.pan_offset.x) / this.controls.zoom_level;
-		const worldY = (screenY - this.pan_offset.y) / this.controls.zoom_level;
+		const worldX = (screenX - this.pan_offset.x) / this.zoom_level;
+		const worldY = (screenY - this.pan_offset.y) / this.zoom_level;
 		return {
 			col: Math.floor(worldX / this.CELL_SIZE),
 			row: Math.floor(worldY / this.CELL_SIZE)
@@ -1001,10 +1012,14 @@ export class Engine {
 	}
 
 	setTheme(themeName: string, duration = 600) {
+		// 1. Check if theme actually changed
 		if (this.theme === themeName) return;
+
+		// 2. Update state and DOM
 		this.theme = themeName;
 		document.documentElement.setAttribute('theme', themeName);
 
+		// 3. Snapshot current state as start
 		this.transition.startColors = {
 			background: { ...this.currentColors.background },
 			grid: { ...this.currentColors.grid },
@@ -1013,8 +1028,15 @@ export class Engine {
 			life_stroke: { ...this.currentColors.life_stroke }
 		};
 
+		// 4. Read Computed Styles from DOM
+		// The DOM updates synchronously when setAttribute is called,
+		// so getComputedStyle will return the new theme values immediately.
 		const styles = getComputedStyle(document.documentElement);
 
+		// 5. Parse and Set Targets
+		// Note: I'm keeping your original transparency logic (Grid 0.2, Blob 0.85)
+		// as a default override if the CSS provides opaque RGB.
+		// If you want full CSS control, change defaultAlpha to 1.
 		this.transition.targetColors.background = this.parseCssColor(
 			styles.getPropertyValue('--color-bg').trim()
 		);
@@ -1030,17 +1052,17 @@ export class Engine {
 		this.transition.targetColors.life_stroke = this.parseCssColor(
 			styles.getPropertyValue('--color-life-stroke').trim()
 		);
-
+		// 6. Start Transition
 		this.transition.duration = duration;
 		this.transition.startTime = performance.now();
 		this.transition.active = true;
 
-		if (!this.controls.playing && !this.isAnimating) {
+		// Ensure loop is running if paused so we see the color change
+		if (!this.isPlaying && !this.isAnimating) {
 			this.draw();
 			requestAnimationFrame(() => this.processColorTransition(performance.now()));
 		}
 	}
-
 	private processColorTransition(currentTime: number) {
 		if (!this.transition.active) return;
 
@@ -1052,8 +1074,10 @@ export class Engine {
 			this.transition.active = false;
 		}
 
+		// Custom Easing: Ease Out Quart (1 - (1-x)^4)
 		const ease = 1 - Math.pow(1 - progress, 4);
 
+		// Lerp Function
 		const lerp = (start: number, end: number, t: number) => start + (end - start) * t;
 		const lerpColor = (start: RGBA, end: RGBA, t: number): RGBA => ({
 			r: lerp(start.r, end.r, t),
@@ -1062,6 +1086,7 @@ export class Engine {
 			a: lerp(start.a, end.a, t)
 		});
 
+		// Update Current Colors
 		this.currentColors.background = lerpColor(
 			this.transition.startColors.background,
 			this.transition.targetColors.background,
@@ -1088,12 +1113,12 @@ export class Engine {
 			ease
 		);
 
-		if (!this.controls.playing && this.transition.active) {
+		// If game is paused, we need to force redraws during transition
+		if (!this.isPlaying && this.transition.active) {
 			this.draw();
 			requestAnimationFrame(() => this.processColorTransition(performance.now()));
 		}
 	}
-
 	// --- INPUT LISTENERS ---
 
 	private setupListeners() {
@@ -1142,6 +1167,7 @@ export class Engine {
 		const y = event.clientY - this.canvas_rect.top;
 		const { col, row } = this.screenToGrid(x, y);
 
+		// Always update hover position
 		this.hover_pos = { col, row };
 
 		if (!this.isMouseDown) return;
