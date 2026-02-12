@@ -45,11 +45,11 @@
 		<div class="relative px-4 py-3 text-text">
 			<div class="mb-2 flex justify-between gap-4">
 				<div class=" text-3xl/7.5">{raw_pattern.name}</div>
-				<div class="font-mono text-white/60">
+				<div class="font-mono text-text/50">
 					{(pattern?.index || 0) + 1}/{current_group.children.length}
 				</div>
 			</div>
-			<div class="text-white/60">{raw_pattern.author}</div>
+			<div class="text-text/50">{raw_pattern.author}</div>
 
 			<div class="mt-12">
 				{#each raw_pattern.comments as comment}
@@ -57,7 +57,7 @@
 				{/each}
 			</div>
 			<div class="grid-12 mt-4 grid">
-				<div class="col-span-8 font-mono text-white/60">
+				<div class="col-span-8 font-mono text-text/50">
 					<div>{raw_pattern.width}x{raw_pattern.height}</div>
 					<div>{pixel_count} cellules</div>
 				</div>

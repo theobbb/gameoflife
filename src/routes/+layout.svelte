@@ -66,8 +66,8 @@
 		<div class="col-span-6 flex items-end">
 			<Nav {group} />
 		</div>
-		<div class="col-span-3 flex items-end">
-			<div class="pointer-events-auto"><Controls /></div>
+		<div class="col-span-3 flex items-end justify-end">
+			<Controls />
 		</div>
 	</div>
 {/if}

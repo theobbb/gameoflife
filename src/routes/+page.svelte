@@ -34,7 +34,7 @@
 		<div class="col-span-6 pl-gap">
 			<a
 				href="/pulsar"
-				class="my-2 flex w-fit items-center gap-2 rounded bg-text px-5 py-2 text-bg"
+				class="my-2 flex w-fit items-center gap-2 rounded border border-white bg-white/80 px-5 py-2 pr-4 font-mono text-bg"
 			>
 				Commencer
 				<div class="mt-0.5 icon-[ri--arrow-right-long-fill]"></div>
