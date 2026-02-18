@@ -5,35 +5,55 @@
 	const engine = get_engine();
 </script>
 
-<div class="flex items-end gap-gap">
-	<button onclick={engine.togglePlay} class="w-44">
-		<Key label="play/pause">
-			<div class="h-0.5 w-10 -translate-y-2 bg-text"></div>
-		</Key>
-		<!-- <div class={[engine.isPlaying ? 'icon-[ri--pause-fill]' : 'icon-[ri--play-fill]']}></div> -->
-	</button>
-	<div class="grid grid-cols-3 grid-rows-2 gap-x-1.5">
-		<button onclick={engine.next_frame} class="col-start-2 w-11">
-			<Key label="time+">
-				<div class={'icon-[ri--arrow-up-fill] -translate-y-2'}></div>
+<div class="flex flex-col items-end gap-gap">
+	<div class="grid-rows-2- grid grid-cols-3 gap-x-1.5">
+		<div class="col-span-full row-start-1">
+			<Key
+				action={engine.togglePlay}
+				label={engine.controls.playing ? 'Arrêter' : 'Démarrer'}
+				key="Space"
+			>
+				<div class="h-0.5 w-10 translate-y-2 bg-text"></div>
 			</Key>
-		</button>
-		<button onclick={engine.next_frame} class="row-start-2 w-11">
-			<Key label="gen-">
-				<div class={'icon-[ri--arrow-left-fill] -translate-x-2 -translate-y-2'}></div>
+			<!-- <div class={[engine.isPlaying ? 'icon-[ri--pause-fill]' : 'icon-[ri--play-fill]']}></div> -->
+		</div>
+		<div class="col-start-2 row-start-2 -mb-3 w-11">
+			<Key action={engine.next_frame} label="temps+" key="ArrowUp">
+				<div class="icon-[ri--arrow-up-fill] translate-y-2"></div>
 			</Key>
-		</button>
-		<button onclick={engine.next_frame} class="row-start-2 w-11">
-			<Key label="Time-">
-				<div class={'icon-[ri--arrow-down-fill] -translate-y-2'}></div>
+		</div>
+		<div class="row-start-3 w-11">
+			<Key action={engine.next_frame} label="gen-" key="ArrowLeft">
+				<div class="icon-[ri--arrow-left-fill] translate-y-1"></div>
 			</Key>
-		</button>
-		<button onclick={engine.next_frame} class="row-start-2 w-11">
-			<Key label="Gen+">
-				<div class={'icon-[ri--arrow-right-fill] translate-x-2 -translate-y-2'}></div>
+		</div>
+		<div class="row-start-3 w-11">
+			<Key action={engine.next_frame} label="temps-" key="ArrowRight">
+				<div class="icon-[ri--arrow-down-fill] translate-y-1"></div>
 			</Key>
-		</button>
+		</div>
+		<div class="row-start-3 w-11">
+			<Key action={engine.next_frame} label="Gen+" key="ArrowRight">
+				<div class="icon-[ri--arrow-right-fill] translate-y-1"></div>
+			</Key>
+		</div>
+		<div class="row-start-4 w-11">
+			<Key action={() => engine.centerView()} label="centrer" key="KeyC">
+				<div class="translate-y-1">C</div>
+			</Key>
+		</div>
+		<div class="row-start-4 w-11">
+			<Key action={engine.clearGrid} label="delete" key="KeyD">
+				<div class="translate-y-1">D</div>
+			</Key>
+		</div>
+		<div class="row-start-4 w-11">
+			<Key action={engine.resetPattern} label="reset" key="KeyR">
+				<div class="translate-y-1">R</div>
+			</Key>
+		</div>
 	</div>
+	<div></div>
 	<!-- <div>
 					<div class="relative flex w-fit flex-col items-center justify-center">
 						<div class="size-10 rounded-xl border-2 opacity-30"></div>

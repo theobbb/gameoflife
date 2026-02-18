@@ -1,0 +1,560 @@
+[
+    {
+        "fileName": "117p18.rle",
+        "metadata": [
+            "#N 117P18",
+            "#O David Buckingham",
+            "#C The first period 18 oscillator to be found. Found no later than May",
+            "#C 1991.",
+            "#C www.conwaylife.com/wiki/index.php?title=117P18"
+        ],
+        "header": "x = 39, y = 30, rule = b3/s23",
+        "pattern": "37b2o$8b2o27bob$9bo25bobob$9bobo23b2o2b$10b2o13bobo2bobo6b$14bobo2bobo2bo2bo2bo2bo5b$13bo2bo2bo2bo2bobo2bobo6b$14bobo2bobo13b2o2b$10b2o23bobob$9bobo25bob$9bo27b2o$8b2o29b$23b2o14b$19b2o2b2o14b$18b2o19b$19bo19b$14b2o23b$14b2o23b$29b2o8b$2o27bo9b$bo25bobo9b$bobo23b2o10b$2b2o13bobo2bobo14b$6bobo2bobo2bo2bo2bo2bo13b$5bo2bo2bo2bo2bobo2bobo14b$6bobo2bobo13b2o10b$2b2o23bobo9b$bobo25bo9b$bo27b2o8b$2o!"
+    },
+    {
+        "fileName": "145p20.rle",
+        "metadata": [
+            "#N 145P20",
+            "#O Noam Elkies",
+            "#C An unnamed period 20 oscillator. Found on March 22, 1995.",
+            "#C www.conwaylife.com/wiki/index.php?title=145P20"
+        ],
+        "header": "x = 28, y = 21, rule = b3/s23",
+        "pattern": "4b2o4bo4b2o11b$3bo2bobo3bobo2bo10b$3b3o9b3o10b$b2o3b2o5b2o13b$obo2bo2b5o2bo4b2o6b$obobobo7b2o3bo2bo5b$bobobo13bobo2bo2bo$3bo14b2obob5o$2bo2bo11bo3bo6b$2bo9bo4bo4bob2o2b$2bo3bo3b2ob2o2bo3b2o3bob$2bo9bo4bo4bobobob$2bo2bo11bo3bo3bo2b$3bo14b2obob2o3b$bobobo13bobobo4b$obobobo7b2o3bobo2bo3b$obo2bo2b5o2bo4bo2b2o3b$b2o3b2o5b2o13b$3b3o9b3o10b$3bo2bobo3bobo2bo10b$4b2o4bo4b2o!"
+    },
+    {
+        "fileName": "38p11.1.rle",
+        "metadata": [
+            "#N 38P11.1",
+            "#O David Buckingham",
+            "#C The first period 11 oscillator to be found, and still the smallest",
+            "#C known. Found on June 20, 1977.",
+            "#C www.conwaylife.com/wiki/index.php?title=38P11.1"
+        ],
+        "header": "x = 12, y = 12, rule = b3/s23",
+        "pattern": "2b2ob2o5b$3bobobo4b$3bo4bo3b$2obo5bo2b$2obo6bob$3bobo5bo$3bob2o3b2o$4bo7b$5b7o$11bo$7b2o3b$7b2o!"
+    },
+    {
+        "fileName": "42p10.3.rle",
+        "metadata": [
+            "#N 42p10.3.rle",
+            "#C https://conwaylife.com/wiki/42P10.3",
+            "#C https://conwaylife.com/patterns/42p10.3.rle",
+            "#C First period-10 oscillator to be discovered, no later than 1976."
+        ],
+        "header": "x = 13, y = 13, rule = B3/S23",
+        "pattern": "6b2o$6b2o2$4b4o$3bo4bo$o2b5obo$3o6bo$3bo3bobob2o$2bo2bo4bobo$2bob2ob3o$3bo2bo$4bo2bo$5b2o!"
+    },
+    {
+        "fileName": "54p17.1.rle",
+        "metadata": [
+            "#N 54P17.1",
+            "#O Dean Hickerson",
+            "#C The first period 17 oscillator to be found. Discovered on April 27,",
+            "#C 1997.",
+            "#C www.conwaylife.com/wiki/index.php?title=54P17.1"
+        ],
+        "header": "x = 15, y = 13, rule = b3/s23",
+        "pattern": "5bo9b$4bobo8b$4bobo3b2o3b$b2obob2o3bo3b$2bobo6bob2o$o2bobob3obo2bo$2obobo4bobo2b$3bobo2b2o2b2ob$3bobo3bobo3b$4b2obobobo3b$6bobobo4b$6bobo6b$7b2o!"
+    },
+    {
+        "fileName": "65p13.1.rle",
+        "metadata": [
+            "#N 65P13.1",
+            "#O David Buckingham",
+            "#C The first period 13 oscillator to be found. Found in 1976.",
+            "#C www.conwaylife.com/wiki/index.php?title=65P13.1"
+        ],
+        "header": "x = 25, y = 15, rule = b3/s23",
+        "pattern": "4bo15bo4b$3bobo13bobo3b$3bobo13bobo3b$b3ob2o11b2ob3ob$o23bo$b3ob2o11b2ob3ob$3bob2o11b2obo3b$10bo3bo10b$11bobo11b$10b2ob2o10b$8bo2bobo2bo8b$7bobobobobobo7b$7b2o2bobo2b2o7b$11bobo11b$12bo!"
+    },
+    {
+        "fileName": "acorn.rle",
+        "metadata": [
+            "#N Acorn",
+            "#O Charles Corderman",
+            "#C A methuselah with lifespan 5206.",
+            "#C www.conwaylife.com/wiki/index.php?title=Acorn"
+        ],
+        "header": "x = 7, y = 3, rule = B3/S23",
+        "pattern": "bo5b$3bo3b$2o2b3o!"
+    },
+    {
+        "fileName": "beacon.rle",
+        "metadata": [
+            "#N Beacon",
+            "#O John Conway",
+            "#C A common period 2 oscillator.",
+            "#C www.conwaylife.com/wiki/index.php?title=Beacon"
+        ],
+        "header": "x = 4, y = 4, rule = B3/S23",
+        "pattern": "2o2b$o3b$3bo$2b2o!"
+    },
+    {
+        "fileName": "beehive.rle",
+        "metadata": [
+            "#N Beehive",
+            "#O John Conway",
+            "#C An extremely common 6-cell still life.",
+            "#C www.conwaylife.com/wiki/index.php?title=Beehive"
+        ],
+        "header": "x = 4, y = 3, rule = B3/S23",
+        "pattern": "b2ob$o2bo$b2o!"
+    },
+    {
+        "fileName": "blinker.rle",
+        "metadata": [
+            "#N Blinker",
+            "#O John Conway",
+            "#C A period 2 oscillator that is the smallest and most common oscillator.",
+            "#C www.conwaylife.com/wiki/index.php?title=Blinker"
+        ],
+        "header": "x = 3, y = 1, rule = B3/S23",
+        "pattern": "3o!"
+    },
+    {
+        "fileName": "block.rle",
+        "metadata": [
+            "#N Block",
+            "#C An extremely common 4-cell still life.",
+            "#C www.conwaylife.com/wiki/index.php?title=Block"
+        ],
+        "header": "x = 2, y = 2, rule = B3/S23",
+        "pattern": "2o$2o!"
+    },
+    {
+        "fileName": "boat.rle",
+        "metadata": [
+            "#N Boat",
+            "#C The only 5-cell still life.",
+            "#C www.conwaylife.com/wiki/index.php?title=Boat"
+        ],
+        "header": "x = 3, y = 3, rule = B3/S23",
+        "pattern": "2ob$obo$bo!"
+    },
+    {
+        "fileName": "boattie.rle",
+        "metadata": [
+            "#N Boat-tie",
+            "#C A 10-cell still life.",
+            "#C www.conwaylife.com/wiki/index.php?title=Boat-tie"
+        ],
+        "header": "x = 6, y = 6, rule = B3/S23",
+        "pattern": "bo4b$obo3b$b2o3b$3b2ob$3bobo$4bo!"
+    },
+    {
+        "fileName": "bunnies.rle",
+        "metadata": [
+            "#N Bunnies",
+            "#O Robert Wainwright and Andrew Trevorrow",
+            "#C A methuselah and parent of rabbits with lifespan 17332.",
+            "#C www.conwaylife.com/wiki/index.php?title=Bunnies"
+        ],
+        "header": "x = 8, y = 4, rule = B3/S23",
+        "pattern": "o5bob$2bo3bob$2bo2bobo$bobo!"
+    },
+    {
+        "fileName": "burloaferimeter.rle",
+        "metadata": [
+            "#N Burloaferimeter",
+            "#O David Buckingham",
+            "#C A period 7 oscillator.",
+            "#C www.conwaylife.com/wiki/index.php?title=Burloaferimeter"
+        ],
+        "header": "x = 10, y = 11, rule = B3/S23",
+        "pattern": "4b2o4b$5bo4b$4bo5b$3bob3o2b$3bobo2bob$2obo3bobo$2obo4bob$4b4o2b2$4b2o4b$4b2o!"
+    },
+    {
+        "fileName": "canoe.rle",
+        "metadata": [
+            "#N Canoe",
+            "#C An 8-cell still life.",
+            "#C www.conwaylife.com/wiki/index.php?title=Canoe"
+        ],
+        "header": "x = 5, y = 5, rule = B3/S23",
+        "pattern": "3b2o$4bo$3bob$obo2b$2o!"
+    },
+    {
+        "fileName": "cribbage.rle",
+        "metadata": [
+            "#N Cribbage",
+            "#O Mitchell Riley",
+            "#C Discovered on July 14, 2023",
+            "#C This was the first period-19 oscillator to be found.",
+            "#C https://conwaylife.com/wiki/Cribbage"
+        ],
+        "header": "x = 32, y = 21, rule = B3/S23",
+        "pattern": "4b2o$4bo$b2obo10bo$bo2b2o9b3o$3bo2bo11bo$bob3obo9b2o$obo4bo$o2b3o15bo$b2o2bo5bo8b2o7b2o$3b2o6bo16bobo$3bo7bo8bo7bo$bobo16bo6b2o$b2o7b2o8bo5bo2b2o$10bo15b3o2bo$24bo4bobo$13b2o9bob3obo$13bo11bo2bo$14b3o9b2o2bo$16bo10bob2o$27bo$26b2o!"
+    },
+    {
+        "fileName": "diehard.rle",
+        "metadata": [
+            "#N Die hard",
+            "#C A methuselah that dies completely. It has lifespan 130.",
+            "#C https://www.conwaylife.com/wiki/index.php?title=Die_hard"
+        ],
+        "header": "x = 8, y = 3, rule = B3/S23",
+        "pattern": "6bob$2o6b$bo3b3o!"
+    },
+    {
+        "fileName": "dinnertable.rle",
+        "metadata": [
+            "#N Dinner table",
+            "#O Robert Wainwright",
+            "#C The first period 12 oscillator to be found. Discovered in 1972.",
+            "#C www.conwaylife.com/wiki/index.php?title=Dinner_table"
+        ],
+        "header": "x = 13, y = 13, rule = b3/s23",
+        "pattern": "bo11b$b3o7b2o$4bo6bob$3b2o4bobob$9b2o2b$6bo6b$4b2obo5b2$2bo3bo2bo3b$bob2o4bo3b$bo6bo4b$2o7b3ob$11bo!"
+    },
+    {
+        "fileName": "eater1.rle",
+        "metadata": [
+            "#N Eater 1",
+            "#O Bill Gosper",
+            "#C The first discovered eater and a 7-cell still life.",
+            "#C https://www.conwaylife.com/wiki/index.php?title=Eater_1"
+        ],
+        "header": "x = 4, y = 4, rule = B3/S23",
+        "pattern": "2o2b$obob$2bob$2b2o!"
+    },
+    {
+        "fileName": "elevener.rle",
+        "metadata": [
+            "#N Elevener",
+            "#C An 11-cell still life.",
+            "#C https://www.conwaylife.com/wiki/index.php?title=Elevener"
+        ],
+        "header": "x = 6, y = 6, rule = B3/S23",
+        "pattern": "4b2o$3bobo$3bo2b$b3o2b$o5b$2o!"
+    },
+    {
+        "fileName": "entrance.rle",
+        "metadata": [
+            "#C Generated by copy.sh/life"
+        ],
+        "header": "x = 29, y = 12, rule = B3/S23",
+        "pattern": "4bo3b3o5bob3obobo$4bo3bo7bobo3bobo$4bo3b3o5bob3obobo$4bo3bo7bobo3bobo$4b3ob3o3b3ob3ob3o$$$2o2b3o3bo4bo4bobobob3o$obobo5bo3bobo3bobobobo$obob3o3bo3bobo3bobobob3o$obobo5bo3b3o3bobobobo$2o2b3o3b3obobo4bo2bob3o!"
+    },
+    {
+        "fileName": "figureeight.rle",
+        "metadata": [
+            "#N Figure eight",
+            "#O Simon Norton",
+            "#C A period 8 oscillator found in 1970.",
+            "#C www.conwaylife.com/wiki/index.php?title=Figure_eight"
+        ],
+        "header": "x = 6, y = 6, rule = B3/S23",
+        "pattern": "2o4b$2obo2b$4bob$bo4b$2bob2o$4b2o!"
+    },
+    {
+        "fileName": "glider.rle",
+        "metadata": [
+            "#N Glider",
+            "#O Richard K. Guy",
+            "#C The smallest, most common, and first discovered spaceship. Diagonal, has period 4 and speed c/4.",
+            "#C www.conwaylife.com/wiki/index.php?title=Glider"
+        ],
+        "header": "x = 3, y = 3, rule = B3/S23",
+        "pattern": "bob$2bo$3o!"
+    },
+    {
+        "fileName": "gosperglidergun.rle",
+        "metadata": [
+            "#N Gosper glider gun",
+            "#O Bill Gosper",
+            "#C A true period 30 glider gun.",
+            "#C The first known gun and the first known finite pattern with unbounded growth.",
+            "#C www.conwaylife.com/wiki/index.php?title=Gosper_glider_gun"
+        ],
+        "header": "x = 36, y = 9, rule = B3/S23",
+        "pattern": "24bo11b$22bobo11b$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o14b$2o8bo3bob2o4bobo11b$10bo5bo7bo11b$11bo3bo20b$12b2o!"
+    },
+    {
+        "fileName": "hat.rle",
+        "metadata": [
+            "#N Hat",
+            "#C A 9-cell still life.",
+            "#C https://www.conwaylife.com/wiki/index.php?title=Hat"
+        ],
+        "header": "x = 5, y = 4, rule = B3/S23",
+        "pattern": "2bo2b$bobob$bobob$2ob2o!"
+    },
+    {
+        "fileName": "honeycomb.rle",
+        "metadata": [
+            "#N Honeycomb",
+            "#C A symmetric 12-cell still life.",
+            "#C https://www.conwaylife.com/wiki/index.php?title=Honeycomb"
+        ],
+        "header": "x = 6, y = 5, rule = B3/S23",
+        "pattern": "2b2o2b$bo2bob$ob2obo$bo2bob$2b2o!"
+    },
+    {
+        "fileName": "hwss.rle",
+        "metadata": [
+            "#N Heavyweight spaceship",
+            "#O John Conway",
+            "#C A very well-known period 4 c/2 orthogonal spaceship.",
+            "#C www.conwaylife.com/wiki/index.php?title=Heavyweight_spaceship"
+        ],
+        "header": "x = 7, y = 5, rule = B3/S23",
+        "pattern": "3b2o2b$bo4bo$o6b$o5bo$6o!"
+    },
+    {
+        "fileName": "integralsign.rle",
+        "metadata": [
+            "#N Integral sign",
+            "#C A 9-cell still life.",
+            "#C https://www.conwaylife.com/wiki/index.php?title=Integral_sign"
+        ],
+        "header": "x = 5, y = 5, rule = B3/S23",
+        "pattern": "3b2o$2bobo$2bo2b$obo2b$2o!"
+    },
+    {
+        "fileName": "loaf.rle",
+        "metadata": [
+            "#N Loaf",
+            "#C A very common 7-cell still life.",
+            "#C www.conwaylife.com/wiki/index.php?title=Loaf"
+        ],
+        "header": "x = 4, y = 4, rule = B3/S23",
+        "pattern": "b2ob$o2bo$bobo$2bo!"
+    },
+    {
+        "fileName": "loop.rle",
+        "metadata": [
+            "#N Loop",
+            "#C A 10-cell still life.",
+            "#C https://www.conwaylife.com/wiki/index.php?title=Loop"
+        ],
+        "header": "x = 5, y = 4, rule = B3/S23",
+        "pattern": "b2o2b$o2bob$bobob$2ob2o!"
+    },
+    {
+        "fileName": "lwss.rle",
+        "metadata": [
+            "#N Lightweight spaceship",
+            "#O John Conway",
+            "#C A very well-known period 4 c/2 orthogonal spaceship.",
+            "#C www.conwaylife.com/wiki/index.php?title=Lightweight_spaceship"
+        ],
+        "header": "x = 5, y = 4, rule = B3/S23",
+        "pattern": "bo2bo$o4b$o3bo$4o!"
+    },
+    {
+        "fileName": "mirroredtable.rle",
+        "metadata": [
+            "#N mirroredtable",
+            "#C https://conwaylife.com/wiki/Mirrored_table",
+            "#C https://www.conwaylife.com/patterns/mirroredtable.rle"
+        ],
+        "header": "x = 5, y = 4, rule = B3/S23",
+        "pattern": "2ob2o$bobo$bobo$2ob2o!"
+    },
+    {
+        "fileName": "mwss.rle",
+        "metadata": [
+            "#N Middleweight spaceship",
+            "#O John Conway",
+            "#C A very well-known period 4 c/2 orthogonal spaceship.",
+            "#C www.conwaylife.com/wiki/index.php?title=Middleweight_spaceship"
+        ],
+        "header": "x = 6, y = 5, rule = B3/S23",
+        "pattern": "3bo2b$bo3bo$o5b$o4bo$5o!"
+    },
+    {
+        "fileName": "newgun.rle",
+        "metadata": [
+            "#N newgun.rle",
+            "#O Bill Gosper, 1971",
+            "#C https://conwaylife.com/wiki/New_gun_1",
+            "#C https://www.conwaylife.com/patterns/newgun.rle"
+        ],
+        "header": "x = 36, y = 34, rule = B3/S23",
+        "pattern": "25b2o5b2o$25b2o5b2o8$26bo5bo$25b3o3b3o$24b2obo3bob2o3$27bo3bo$27bo3bo7$33bo$10b2o22b2o$2o7bobo21b2o$2o7bo$9b3o4$9b3o$2o7bo17b2o$2o7bobo15b2o$10b2o!"
+    },
+    {
+        "fileName": "octagon2.rle",
+        "metadata": [
+            "#N Octagon 2",
+            "#O Sol Goodman and Arthur Taber",
+            "#C The first known period 5 oscillator.",
+            "#C www.conwaylife.com/wiki/index.php?title=Octagon_2"
+        ],
+        "header": "x = 8, y = 8, rule = B3/S23",
+        "pattern": "3b2o3b$2bo2bo2b$bo4bob$o6bo$o6bo$bo4bob$2bo2bo2b$3b2o!"
+    },
+    {
+        "fileName": "pentadecathlon.rle",
+        "metadata": [
+            "#N Pentadecathlon",
+            "#O John Conway",
+            "#C 10 cells placed in a row evolve into this object, which is the most natural oscillator of period greater than 3. In fact, it is the fifth or sixth most common oscillator overall, being about as frequent as the clock, but much less frequent than the blinker, toad, beacon or pulsar.",
+            "#C www.conwaylife.com/wiki/index.php?title=Pentadecathlon"
+        ],
+        "header": "x = 10, y = 3, rule = B3/S23",
+        "pattern": "2bo4bo2b$2ob4ob2o$2bo4bo!"
+    },
+    {
+        "fileName": "piheptomino.rle",
+        "metadata": [
+            "#N Pi-heptomino",
+            "#C One of 108 heptominoes.",
+            "#C www.conwaylife.com/wiki/index.php?title=Pi-heptomino"
+        ],
+        "header": "x = 3, y = 3, rule = B3/S23",
+        "pattern": "3o$obo$obo!"
+    },
+    {
+        "fileName": "pinwheel.rle",
+        "metadata": [
+            "#N Pinwheel",
+            "#O Simon Norton",
+            "#C A period 4 oscillator.",
+            "#C https://www.conwaylife.com/wiki/index.php?title=Pinwheel"
+        ],
+        "header": "x = 12, y = 12, rule = B3/S23",
+        "pattern": "6b2o4b$6b2o4b2$4b4o4b$2obo4bo3b$2obo2bobo3b$3bo3b2ob2o$3bobo2bob2o$4b4o4b2$4b2o6b$4b2o!"
+    },
+    {
+        "fileName": "pond.rle",
+        "metadata": [
+            "#N Pond",
+            "#C An 8-cell still life.",
+            "#C www.conwaylife.com/wiki/index.php?title=Pond"
+        ],
+        "header": "x = 4, y = 4, rule = B3/S23",
+        "pattern": "b2ob$o2bo$o2bo$b2o!"
+    },
+    {
+        "fileName": "pulsar.rle",
+        "metadata": [
+            "#N Pulsar",
+            "#O John Conway",
+            "#C A period 3 oscillator. Despite its size, this is the fourth most common oscillator (and by",
+            "#C far the most common of period greater than 2).",
+            "#C www.conwaylife.com/wiki/index.php?title=Pulsar"
+        ],
+        "header": "x = 13, y = 13, rule = B3/S23",
+        "pattern": "2b3o3b3o2b2$o4bobo4bo$o4bobo4bo$o4bobo4bo$2b3o3b3o2b2$2b3o3b3o2b$o4bobo4bo$o4bobo4bo$o4bobo4bo2$2b3o3b3o!"
+    },
+    {
+        "fileName": "rats.rle",
+        "metadata": [
+            "#N $rats",
+            "#O David Buckingham",
+            "#C A period 6 oscillator found in 1972.",
+            "#C www.conwaylife.com/wiki/index.php?title=$rats"
+        ],
+        "header": "x = 12, y = 11, rule = B3/S23",
+        "pattern": "5b2o5b$6bo5b$4bo7b$2obob4o3b$2obo5bobo$3bo2b3ob2o$3bo4bo3b$4b3obo3b$7bo4b$6bo5b$6b2o!"
+    },
+    {
+        "fileName": "rpentomino.rle",
+        "metadata": [
+            "#N R-pentomino",
+            "#C A methuselah with lifespan 1103.",
+            "#C www.conwaylife.com/wiki/index.php?title=R-pentomino"
+        ],
+        "header": "x = 3, y = 3, rule = B3/S23",
+        "pattern": "b2o$2ob$bo!"
+    },
+    {
+        "fileName": "ship.rle",
+        "metadata": [
+            "#N Ship",
+            "#C A common 6-cell still life.",
+            "#C www.conwaylife.com/wiki/index.php?title=Ship"
+        ],
+        "header": "x = 3, y = 3, rule = B3/S23",
+        "pattern": "2ob$obo$b2o!"
+    },
+    {
+        "fileName": "simkinglidergun.rle",
+        "metadata": [
+            "#N Simkin glider gun",
+            "#O Michael Simkin",
+            "#C A true period 120 glider gun, found on April 28, 2015.",
+            "#C www.conwaylife.com/wiki/Simkin_glider_gun"
+        ],
+        "header": "x = 33, y = 21, rule = B3/S23",
+        "pattern": "2o5b2o$2o5b2o2$4b2o$4b2o5$22b2ob2o$21bo5bo$21bo6bo2b2o$21b3o3bo3b2o$26bo4$20b2o$20bo$21b3o$23bo!"
+    },
+    {
+        "fileName": "toad.rle",
+        "metadata": [
+            "#N Toad",
+            "#O Simon Norton",
+            "#C A period 2 oscillator. The second most common oscillator (after the blinker).",
+            "#C www.conwaylife.com/wiki/index.php?title=Toad"
+        ],
+        "header": "x = 4, y = 2, rule = B3/S23",
+        "pattern": "b3o$3o!"
+    },
+    {
+        "fileName": "transqueenbeeshuttle.rle",
+        "metadata": [
+            "#N Trans-queen bee shuttle",
+            "#O Bill Gosper",
+            "#C A period 30 oscillator that is a queen bee shuttle with its blocks offset.",
+            "#C www.conwaylife.com/wiki/index.php?title=Queen_bee_shuttle"
+        ],
+        "header": "x = 22, y = 7, rule = b3/s23",
+        "pattern": "9bo12b$7bobo12b$6bobo11b2o$2o3bo2bo11b2o$2o4bobo13b$7bobo12b$9bo!"
+    },
+    {
+        "fileName": "tub.rle",
+        "metadata": [
+            "#N Tub",
+            "#C A very common 4-cell still life.",
+            "#C www.conwaylife.com/wiki/index.php?title=Tub"
+        ],
+        "header": "x = 3, y = 3, rule = B3/S23",
+        "pattern": "bob$obo$bo!"
+    },
+    {
+        "fileName": "tumbler.rle",
+        "metadata": [
+            "#N Tumbler",
+            "#O George Collins",
+            "#C The smallest known period 14 oscillator.",
+            "#C www.conwaylife.com/wiki/index.php?title=Tumbler"
+        ],
+        "header": "x = 9, y = 5, rule = B3/S23",
+        "pattern": "bo5bob$obo3bobo$o2bobo2bo$2bo3bo2b$2b2ob2o!"
+    },
+    {
+        "fileName": "twinbeesshuttle.rle",
+        "metadata": [
+            "#N Twin bees shuttle",
+            "#O Bill Gosper",
+            "#C Twin bees shuttle was found in 1971 and is the basis of all known period 46 oscillators.",
+            "#C www.conwaylife.com/wiki/index.php?title=Twin_bees_shuttle"
+        ],
+        "header": "x = 29, y = 11, rule = b3/s23",
+        "pattern": "17b2o10b$2o15bobo7b2o$2o17bo7b2o$17b3o9b4$17b3o9b$2o17bo9b$2o15bobo9b$17b2o!"
+    },
+    {
+        "fileName": "twoprelhasslers.rle",
+        "metadata": [
+            "#N Two pre-L hasslers",
+            "#O Robert Wainwright",
+            "#C The first period 16 oscillator to be found. Found in July 1983.",
+            "#C www.conwaylife.com/wiki/index.php?title=Two_pre-L_hasslers"
+        ],
+        "header": "x = 24, y = 16, rule = b3/s23",
+        "pattern": "4b2o12b2o4b$2obo2bob2o4b2obo2bob2o$2o2bo4bo4bo4bo2b2o$5bo12bo5b$6bobo6bobo6b$10bo13b$9bobo12b$8bo5bo9b$9bo5bo8b$12bobo9b$13bo10b$6bobo6bobo6b$5bo12bo5b$2o2bo4bo4bo4bo2b2o$2obo2bob2o4b2obo2bob2o$4b2o12b2o!"
+    },
+    {
+        "fileName": "workerbee.rle",
+        "metadata": [
+            "#N Worker bee",
+            "#O David Buckingham",
+            "#C A period 9 oscillator found in 1972.",
+            "#C www.conwaylife.com/wiki/index.php?title=Worker_bee"
+        ],
+        "header": "x = 16, y = 11, rule = 23/3",
+        "pattern": "2o12b2o$bo12bob$bobo8bobob$2b2o8b2o2b2$5b6o5b2$2b2o8b2o2b$bobo8bobob$bo12bob$2o12b2o!"
+    }
+]

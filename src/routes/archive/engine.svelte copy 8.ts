@@ -16,14 +16,14 @@ export const METABALL_THRESHOLD = [1.0, 0.5, 2.0];
 export const RENDER_RESOLUTION = [5, 1, 9];
 export const INFLUENCE_RADIUS = [6.0, 1.0, 11.0];
 
-const ANIMATION_DURATION = 500;
-const UPDATE_INTERVAL = 100;
+const ANIMATION_DURATION = 500; // ms to morph between states
+const UPDATE_INTERVAL = 100; // ms between generations (at 1x speed)
 
 // Camera Settings
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 8;
 const ZOOM_SENSITIVITY = 0.1;
-const CAMERA_SMOOTHING = 0.25; // Adjusted for snappier feel
+const CAMERA_SMOOTHING = 0.2;
 
 const GAME_ENGINE_SYMBOL = Symbol('GAME_ENGINE_SYMBOL');
 
@@ -44,15 +44,6 @@ type Cell = {
 	scale: number;
 	dying: boolean;
 	isManual?: boolean;
-};
-
-// Cached color strings to avoid string manipulation every frame
-type ColorCache = {
-	background: string;
-	grid: string;
-	grid_hover: string;
-	life_stroke: string;
-	life_fill: string;
 };
 
 export class Engine {
@@ -97,13 +88,10 @@ export class Engine {
 	private nextActiveCells: Set<string> = new Set();
 
 	// Visuals & Physics
+	// Map Key is "x,y" string
 	private visualCells: Map<string, Cell> = new Map();
 	private dyingCells: Map<string, Cell> = new Map();
 	private fieldBuffer = new Float32Array(0);
-
-	// Reuse Paths to avoid GC
-	private fillPath: Path2D | null = null;
-	private strokePath: Path2D | null = null;
 
 	// Camera Physics
 	private pan_offset: Vector2 = { x: 0, y: 0 };
@@ -130,15 +118,6 @@ export class Engine {
 		grid_hover: { r: 255, g: 255, b: 255, a: 0.2 },
 		life_stroke: { r: 255, g: 255, b: 255, a: 0.85 },
 		life_fill: { r: 255, g: 255, b: 255, a: 0.85 }
-	};
-
-	// Pre-computed CSS strings
-	private cachedColors: ColorCache = {
-		background: 'rgba(17,17,17,1)',
-		grid: 'rgba(255,255,255,0.2)',
-		grid_hover: 'rgba(255,255,255,0.2)',
-		life_stroke: 'rgba(255,255,255,0.85)',
-		life_fill: 'rgba(255,255,255,0.85)'
 	};
 
 	private transition = {
@@ -174,35 +153,23 @@ export class Engine {
 		this.fpsTimer = this.lastFrameTime;
 		this.animate(this.lastFrameTime);
 
-		console.log('engine initialized (Infinite Grid / Optimized)');
+		console.log('engine initialized (Infinite Grid)');
 		this.initialized = true;
 	}
 
 	private get_theme() {
 		const styles = getComputedStyle(document.documentElement);
-		const getCol = (name: string) => styles.getPropertyValue(name).trim();
-
-		const bg = getCol('--color-bg');
-		const grid = getCol('--color-grid');
-		const hover = getCol('--color-grid-hover');
-		const stroke = getCol('--color-life-stroke');
-		const fill = getCol('--color-life-fill');
+		const bg = styles.getPropertyValue('--color-bg').trim();
+		const grid = styles.getPropertyValue('--color-grid').trim();
+		const grid_hover = styles.getPropertyValue('--color-grid-hover').trim();
+		const life_stroke = styles.getPropertyValue('--color-life-stroke').trim();
+		const life_fill = styles.getPropertyValue('--color-life-fill').trim();
 
 		if (bg) this.currentColors.background = this.parseCssColor(bg);
 		if (grid) this.currentColors.grid = this.parseCssColor(grid);
-		if (hover) this.currentColors.grid_hover = this.parseCssColor(hover);
-		if (stroke) this.currentColors.life_stroke = this.parseCssColor(stroke);
-		if (fill) this.currentColors.life_fill = this.parseCssColor(fill);
-
-		this.updateColorCache();
-	}
-
-	private updateColorCache() {
-		this.cachedColors.background = rgbaToString(this.currentColors.background);
-		this.cachedColors.grid = rgbaToString(this.currentColors.grid);
-		this.cachedColors.grid_hover = rgbaToString(this.currentColors.grid_hover);
-		this.cachedColors.life_stroke = rgbaToString(this.currentColors.life_stroke);
-		this.cachedColors.life_fill = rgbaToString(this.currentColors.life_fill);
+		if (grid_hover) this.currentColors.grid_hover = this.parseCssColor(grid_hover);
+		if (life_stroke) this.currentColors.life_stroke = this.parseCssColor(life_stroke);
+		if (life_fill) this.currentColors.life_fill = this.parseCssColor(life_fill);
 	}
 
 	private resize() {
@@ -224,15 +191,13 @@ export class Engine {
 
 	// --- COORDINATE HELPERS ---
 
-	// Simple string concatenation is fast enough for sparse grids
 	private getKey(col: number, row: number) {
 		return `${col},${row}`;
 	}
 
 	private parseKey(key: string): { col: number; row: number } {
-		// Optimized: avoid creating array if possible, but split is robust
-		const split = key.split(',');
-		return { col: +split[0], row: +split[1] };
+		const [c, r] = key.split(',');
+		return { col: parseInt(c), row: parseInt(r) };
 	}
 
 	// --- GAME LOOP ---
@@ -287,35 +252,14 @@ export class Engine {
 			potentialCells.add(key);
 			const { col, row } = this.parseKey(key);
 
-			// Unrolled loop for performance
-			let nKey: string;
-			// Top Row
-			nKey = this.getKey(col - 1, row - 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col, row - 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col + 1, row - 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			// Middle Row
-			nKey = this.getKey(col - 1, row);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col + 1, row);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			// Bottom Row
-			nKey = this.getKey(col - 1, row + 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col, row + 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col + 1, row + 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
+			for (let dy = -1; dy <= 1; dy++) {
+				for (let dx = -1; dx <= 1; dx++) {
+					if (dx === 0 && dy === 0) continue;
+					const nKey = this.getKey(col + dx, row + dy);
+					neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
+					potentialCells.add(nKey);
+				}
+			}
 		}
 
 		this.nextActiveCells.clear();
@@ -356,11 +300,11 @@ export class Engine {
 		for (const key of allKeys) {
 			const isAlive = this.activeCells.has(key);
 			const willBeAlive = this.nextActiveCells.has(key);
+			const { col, row } = this.parseKey(key);
 
 			// Existing / Manual Add
 			if (isAlive) {
 				if (!this.visualCells.has(key)) {
-					const { col, row } = this.parseKey(key);
 					this.createVisualCell(key, col, row, true);
 				}
 			}
@@ -368,7 +312,6 @@ export class Engine {
 			// Born
 			if (!isAlive && willBeAlive && this.isAnimating) {
 				if (!this.visualCells.has(key)) {
-					const { col, row } = this.parseKey(key);
 					this.createBornCell(key, col, row);
 				}
 			}
@@ -378,8 +321,8 @@ export class Engine {
 				const cell = this.visualCells.get(key);
 				if (cell) {
 					cell.dying = true;
-					// Random dispersion for dying cells
-					const angle = Math.random() * 6.28318;
+					// Random dispersion for dying cells in infinite grid
+					const angle = Math.random() * Math.PI * 2;
 					const dist = this.CELL_SIZE * 2.5;
 					cell.targetX = cell.x + Math.cos(angle) * dist;
 					cell.targetY = cell.y + Math.sin(angle) * dist;
@@ -389,7 +332,6 @@ export class Engine {
 		}
 
 		if (!this.isAnimating) {
-			// Prune dead cells immediately if not animating
 			for (const key of this.visualCells.keys()) {
 				if (!this.activeCells.has(key)) this.visualCells.delete(key);
 			}
@@ -409,7 +351,7 @@ export class Engine {
 			vy: 0,
 			targetX,
 			targetY,
-			phase: Math.random() * 6.28318,
+			phase: Math.random() * Math.PI * 2,
 			phaseSpeed: 0.5 + Math.random() * 0.5,
 			alpha: 1,
 			scale: 0.1,
@@ -425,15 +367,13 @@ export class Engine {
 		let startX = targetX;
 		let startY = targetY;
 
-		// Optimization: Check neighbors via simple string math first
+		// Try to spawn from a neighbor
 		for (let dy = -1; dy <= 1; dy++) {
 			for (let dx = -1; dx <= 1; dx++) {
 				if (dx === 0 && dy === 0) continue;
 				if (this.activeCells.has(this.getKey(col + dx, row + dy))) {
 					startX -= dx * this.CELL_SIZE;
 					startY -= dy * this.CELL_SIZE;
-					// Break out of both loops
-					dy = 2;
 					break;
 				}
 			}
@@ -448,7 +388,7 @@ export class Engine {
 			vy: 0,
 			targetX,
 			targetY,
-			phase: Math.random() * 6.28318,
+			phase: Math.random() * Math.PI * 2,
 			phaseSpeed: 0.5 + Math.random() * 0.5,
 			alpha: 1,
 			scale: 0.5,
@@ -485,10 +425,9 @@ export class Engine {
 	private updatePhysics(dt: number, scale: number) {
 		const tSec = (dt / 1000) * scale;
 		const STIFFNESS = this.controls.stiffness;
-		const DAMPING = Math.pow(this.controls.damping, tSec); // Pre-calc damping power
+		const DAMPING = this.controls.damping;
 		const CELL_SIZE = this.CELL_SIZE;
 
-		// Pre-calc animation curve
 		const progress = this.isAnimating
 			? this.animationProgress < 0.5
 				? 4 * this.animationProgress ** 3
@@ -497,8 +436,6 @@ export class Engine {
 
 		for (const cell of this.visualCells.values()) {
 			cell.phase += cell.phaseSpeed * tSec;
-
-			// Optimization: select wobble amount once
 			const wobbleAmount = this.isAnimating ? 0.5 : 2;
 			const wobbleX = Math.sin(cell.phase) * wobbleAmount;
 			const wobbleY = Math.cos(cell.phase * 1.3) * wobbleAmount;
@@ -514,7 +451,7 @@ export class Engine {
 						cell.isManual = false;
 					}
 				} else if (this.isAnimating && cell.scale < 1) {
-					cell.scale = 0.5 + 0.5 * progress; // Inlined Lerp
+					cell.scale = this.lerp(0.5, 1, progress);
 				} else if (!this.isAnimating && !cell.isManual) {
 					cell.scale = 1;
 				}
@@ -525,28 +462,27 @@ export class Engine {
 				cell.alpha = 1 - progress;
 			}
 
-			// Spring Physics
 			const dx = cell.targetX - cell.x;
 			const dy = cell.targetY - cell.y;
 
-			cell.vx += dx * STIFFNESS * 0.25 * tSec;
-			cell.vy += dy * STIFFNESS * 0.25 * tSec;
+			cell.vx += ((dx * STIFFNESS) / 4) * tSec;
+			cell.vy += ((dy * STIFFNESS) / 4) * tSec;
 
-			cell.vx *= DAMPING;
-			cell.vy *= DAMPING;
-
+			const d = Math.pow(DAMPING, tSec);
+			cell.vx *= d;
+			cell.vy *= d;
 			cell.x += cell.vx * tSec * 60;
 			cell.y += cell.vy * tSec * 60;
 		}
 	}
 
 	private updateCamera() {
-		// Smooth Camera Transition
+		// Standard Lerp
 		this.controls.zoom_level += (this.target_zoom - this.controls.zoom_level) * CAMERA_SMOOTHING;
 		this.pan_offset.x += (this.target_pan.x - this.pan_offset.x) * CAMERA_SMOOTHING;
 		this.pan_offset.y += (this.target_pan.y - this.pan_offset.y) * CAMERA_SMOOTHING;
 
-		// Snapping for crispness when settled
+		// Snapping: Lowered thresholds for sub-pixel precision
 		if (Math.abs(this.target_zoom - this.controls.zoom_level) < 0.0001)
 			this.controls.zoom_level = this.target_zoom;
 
@@ -559,16 +495,28 @@ export class Engine {
 
 	// --- DRAWING ---
 
+	private getEdgePoint(
+		x1: number,
+		y1: number,
+		val1: number,
+		x2: number,
+		y2: number,
+		val2: number,
+		threshold: number
+	) {
+		if (Math.abs(val1 - val2) < 0.001) return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
+		const t = (threshold - val1) / (val2 - val1);
+		return { x: this.lerp(x1, x2, t), y: this.lerp(y1, y2, t) };
+	}
+
 	private drawMetaballs(minX: number, maxX: number, minY: number, maxY: number) {
 		const RENDER_RES = this.RENDER_RESOLUTION;
-		const INF_RAD = this.INFLUENCE_RADIUS;
 
-		// 1. Setup Buffers
-		// Round to resolution alignment
-		const startX = Math.floor(minX / RENDER_RES) * RENDER_RES - INF_RAD;
-		const endX = Math.ceil(maxX / RENDER_RES) * RENDER_RES + INF_RAD;
-		const startY = Math.floor(minY / RENDER_RES) * RENDER_RES - INF_RAD;
-		const endY = Math.ceil(maxY / RENDER_RES) * RENDER_RES + INF_RAD;
+		// Calculate dynamic bounds based on visible area
+		const startX = Math.floor(minX / RENDER_RES) * RENDER_RES - this.INFLUENCE_RADIUS;
+		const endX = Math.ceil(maxX / RENDER_RES) * RENDER_RES + this.INFLUENCE_RADIUS;
+		const startY = Math.floor(minY / RENDER_RES) * RENDER_RES - this.INFLUENCE_RADIUS;
+		const endY = Math.ceil(maxY / RENDER_RES) * RENDER_RES + this.INFLUENCE_RADIUS;
 
 		const bufW = Math.ceil((endX - startX) / RENDER_RES) + 1;
 		const bufH = Math.ceil((endY - startY) / RENDER_RES) + 1;
@@ -577,10 +525,11 @@ export class Engine {
 		if (this.fieldBuffer.length < reqSize) this.fieldBuffer = new Float32Array(reqSize);
 		this.fieldBuffer.fill(0, 0, reqSize);
 
+		const INF_RAD = this.INFLUENCE_RADIUS;
 		const META_RAD_SQ = this.METABALL_RADIUS_SQ;
 		const META_THRESH = this.METABALL_THRESHOLD;
 
-		// 2. Splatting: Add cells to field
+		// 1. Calculate Field
 		for (const cell of this.visualCells.values()) {
 			if (
 				cell.x < startX - INF_RAD ||
@@ -590,10 +539,10 @@ export class Engine {
 			)
 				continue;
 
-			const strength = META_RAD_SQ * (cell.scale * cell.scale) * cell.alpha;
+			const r2 = META_RAD_SQ * (cell.scale * cell.scale);
+			const strength = r2 * cell.alpha;
 			if (strength < 0.01) continue;
 
-			// Optimization: Integer conversions moved out of loop
 			const fx = (cell.x - startX) / RENDER_RES;
 			const fy = (cell.y - startY) / RENDER_RES;
 			const radUnits = INF_RAD / RENDER_RES;
@@ -604,248 +553,185 @@ export class Engine {
 			const cMaxY = Math.min(bufH - 1, Math.ceil(fy + radUnits));
 
 			for (let by = cMinY; by <= cMaxY; by++) {
+				const rowOffset = by * bufW;
 				const worldY = startY + by * RENDER_RES;
 				const dy = worldY - cell.y;
 				const dy2 = dy * dy;
-				const rowOffset = by * bufW;
 
 				for (let bx = cMinX; bx <= cMaxX; bx++) {
 					const worldX = startX + bx * RENDER_RES;
 					const dx = worldX - cell.x;
 					const distSq = dx * dx + dy2;
 
-					// Avoid expensive sqrt, use inverse square law
 					if (distSq > 0.1) this.fieldBuffer[rowOffset + bx] += strength / distSq;
-					else this.fieldBuffer[rowOffset + bx] += 100; // Cap singularity
+					else this.fieldBuffer[rowOffset + bx] += 100;
 				}
 			}
 		}
 
-		// 3. Marching Squares (Optimized Dual-Path)
+		// 2. Marching Squares
 		const ctx = this.ctx!;
-		ctx.fillStyle = this.cachedColors.life_fill;
-		ctx.strokeStyle = this.cachedColors.life_stroke;
+		ctx.fillStyle = rgbaToString(this.currentColors.life_fill);
+		ctx.strokeStyle = rgbaToString(this.currentColors.life_stroke);
 		ctx.lineWidth = 3 / this.controls.zoom_level;
 		ctx.lineCap = 'round';
 		ctx.lineJoin = 'round';
 
-		// Clear paths without GC
-		this.fillPath = new Path2D();
-		this.strokePath = new Path2D();
+		ctx.beginPath();
+		this.march(startX, startY, bufW, bufH, RENDER_RES, META_THRESH, true);
+		ctx.fill();
 
-		this.march(startX, startY, bufW, bufH, RENDER_RES, META_THRESH);
-
-		ctx.fill(this.fillPath);
-		ctx.stroke(this.strokePath);
+		ctx.beginPath();
+		this.march(startX, startY, bufW, bufH, RENDER_RES, META_THRESH, false);
+		ctx.stroke();
 	}
 
-	private march(startX: number, startY: number, w: number, h: number, res: number, thresh: number) {
-		if (!this.fillPath || !this.strokePath) return;
-
-		let x = 0,
-			y = 0;
-		let tl = 0,
-			tr = 0,
-			bl = 0,
-			br = 0;
-		let caseId = 0;
-
-		let tx = 0,
-			ry = 0,
-			bx_pos = 0,
-			ly = 0;
+	private march(
+		startX: number,
+		startY: number,
+		w: number,
+		h: number,
+		res: number,
+		thresh: number,
+		fill: boolean
+	) {
+		const ctx = this.ctx!;
 
 		for (let by = 0; by < h - 1; by++) {
 			const rowOffset = by * w;
 			const nextRowOffset = (by + 1) * w;
-			y = startY + by * res;
+			const y = startY + by * res;
 
 			for (let bx = 0; bx < w - 1; bx++) {
-				tl = this.fieldBuffer[rowOffset + bx];
-				tr = this.fieldBuffer[rowOffset + bx + 1];
-				bl = this.fieldBuffer[nextRowOffset + bx];
-				br = this.fieldBuffer[nextRowOffset + bx + 1];
+				const tl = this.fieldBuffer[rowOffset + bx];
+				const tr = this.fieldBuffer[rowOffset + bx + 1];
+				const bl = this.fieldBuffer[nextRowOffset + bx];
+				const br = this.fieldBuffer[nextRowOffset + bx + 1];
 
-				caseId = 0;
+				let caseId = 0;
 				if (tl >= thresh) caseId |= 1;
 				if (tr >= thresh) caseId |= 2;
 				if (br >= thresh) caseId |= 4;
 				if (bl >= thresh) caseId |= 8;
 
 				if (caseId === 0) continue;
+				if (!fill && caseId === 15) continue;
 
-				x = startX + bx * res;
-
-				// Optimization: Case 15 (Full Block) -> Rectangle (Clockwise)
-				if (caseId === 15) {
-					this.fillPath.rect(x, y, res, res);
+				const x = startX + bx * res;
+				if (fill && caseId === 15) {
+					ctx.rect(x, y, res, res);
 					continue;
 				}
 
-				const xRes = x + res;
-				const yRes = y + res;
-
-				// --- Safe Interpolation ---
-				// Defaults to center if values are identical (prevents Infinity/NaN)
-				if (Math.abs(tr - tl) > 0.0001) tx = x + (res * (thresh - tl)) / (tr - tl);
-				else tx = x + res / 2;
-
-				if (Math.abs(br - tr) > 0.0001) ry = y + (res * (thresh - tr)) / (br - tr);
-				else ry = y + res / 2;
-
-				if (Math.abs(br - bl) > 0.0001) bx_pos = x + (res * (thresh - bl)) / (br - bl);
-				else bx_pos = x + res / 2;
-
-				if (Math.abs(bl - tl) > 0.0001) ly = y + (res * (thresh - tl)) / (bl - tl);
-				else ly = y + res / 2;
-
-				// --- Geometry Construction (Strictly Clockwise) ---
-				// TL=1, TR=2, BR=4, BL=8
+				const top = this.getEdgePoint(x, y, tl, x + res, y, tr, thresh);
+				const right = this.getEdgePoint(x + res, y, tr, x + res, y + res, br, thresh);
+				const bottom = this.getEdgePoint(x + res, y + res, br, x, y + res, bl, thresh);
+				const left = this.getEdgePoint(x, y + res, bl, x, y, tl, thresh);
 
 				switch (caseId) {
-					// --- Single Corner Cases ---
-					case 1: // TL
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(tx, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(tx, y);
+					case 1:
+						ctx.moveTo(top.x, top.y);
+						ctx.lineTo(left.x, left.y);
+						if (fill) ctx.lineTo(x, y);
 						break;
-					case 2: // TR
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(xRes, ry);
+					case 2:
+						ctx.moveTo(right.x, right.y);
+						ctx.lineTo(top.x, top.y);
+						if (fill) ctx.lineTo(x + res, y);
 						break;
-					case 4: // BR
-						this.fillPath.moveTo(xRes, ry);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(xRes, ry);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 3:
+						ctx.moveTo(right.x, right.y);
+						ctx.lineTo(left.x, left.y);
+						if (fill) {
+							ctx.lineTo(x, y);
+							ctx.lineTo(x + res, y);
+						}
 						break;
-					case 8: // BL
-						this.fillPath.moveTo(bx_pos, yRes);
-						this.fillPath.lineTo(x, ly);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(bx_pos, yRes);
-						this.strokePath.lineTo(x, ly);
+					case 4:
+						ctx.moveTo(bottom.x, bottom.y);
+						ctx.lineTo(right.x, right.y);
+						if (fill) ctx.lineTo(x + res, y + res);
 						break;
-
-					// --- Full Edge Cases (Rows/Cols) ---
-					case 3: // TL | TR (Top Row) -> Clockwise: LeftCut -> RightCut -> TR -> TL
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(xRes, ry);
+					case 5:
+						ctx.moveTo(top.x, top.y);
+						ctx.lineTo(left.x, left.y);
+						if (fill) ctx.lineTo(x, y);
+						ctx.moveTo(bottom.x, bottom.y);
+						ctx.lineTo(right.x, right.y);
+						if (fill) ctx.lineTo(x + res, y + res);
 						break;
-					case 6: // TR | BR (Right Col) -> Clockwise: TopCut -> BottomCut -> BR -> TR
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 6:
+						ctx.moveTo(bottom.x, bottom.y);
+						ctx.lineTo(top.x, top.y);
+						if (fill) {
+							ctx.lineTo(x + res, y);
+							ctx.lineTo(x + res, y + res);
+						}
 						break;
-					case 9: // TL | BL (Left Col) -> Clockwise: TopCut -> TL -> BL -> BottomCut
-						// Note: Previous glitch was here (was CCW).
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 7:
+						ctx.moveTo(bottom.x, bottom.y);
+						ctx.lineTo(left.x, left.y);
+						if (fill) {
+							ctx.lineTo(x, y);
+							ctx.lineTo(x + res, y);
+							ctx.lineTo(x + res, y + res);
+						}
 						break;
-					case 12: // BL | BR (Bottom Row) -> Clockwise: LeftCut -> BL -> BR -> RightCut
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(xRes, ry);
+					case 8:
+						ctx.moveTo(left.x, left.y);
+						ctx.lineTo(bottom.x, bottom.y);
+						if (fill) ctx.lineTo(x, y + res);
 						break;
-
-					// --- Saddle Cases (Two Corners) ---
-					case 5: // TL | BR
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(tx, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.closePath();
-						this.fillPath.moveTo(xRes, ry);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(tx, y);
-						this.strokePath.moveTo(xRes, ry);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 9:
+						ctx.moveTo(top.x, top.y);
+						ctx.lineTo(bottom.x, bottom.y);
+						if (fill) {
+							ctx.lineTo(x, y + res);
+							ctx.lineTo(x, y);
+						}
 						break;
-					case 10: // TR | BL
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.closePath();
-						this.fillPath.moveTo(bx_pos, yRes);
-						this.fillPath.lineTo(x, ly);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(xRes, ry);
-						this.strokePath.moveTo(bx_pos, yRes);
-						this.strokePath.lineTo(x, ly);
+					case 10:
+						ctx.moveTo(right.x, right.y);
+						ctx.lineTo(top.x, top.y);
+						if (fill) ctx.lineTo(x + res, y);
+						ctx.moveTo(left.x, left.y);
+						ctx.lineTo(bottom.x, bottom.y);
+						if (fill) ctx.lineTo(x, y + res);
 						break;
-
-					// --- 3-Corner Cases (Inverse Corners) ---
-					case 7: // !BL (TL, TR, BR) -> Clockwise: LeftCut -> Top-Left -> Top-Right -> Bottom-Right -> BottomCut
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 11:
+						ctx.moveTo(right.x, right.y);
+						ctx.lineTo(bottom.x, bottom.y);
+						if (fill) {
+							ctx.lineTo(x, y + res);
+							ctx.lineTo(x, y);
+							ctx.lineTo(x + res, y);
+						}
 						break;
-					case 11: // !BR (TL, TR, BL) -> Clockwise: RightCut -> Top-Right -> Top-Left -> Bottom-Left -> BottomCut
-						this.fillPath.moveTo(xRes, ry);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(xRes, ry);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 12:
+						ctx.moveTo(left.x, left.y);
+						ctx.lineTo(right.x, right.y);
+						if (fill) {
+							ctx.lineTo(x + res, y + res);
+							ctx.lineTo(x, y + res);
+						}
 						break;
-					case 13: // !TR (TL, BL, BR) -> Clockwise: TopCut -> Top-Left -> Bottom-Left -> Bottom-Right -> RightCut
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(xRes, ry);
+					case 13:
+						ctx.moveTo(top.x, top.y);
+						ctx.lineTo(right.x, right.y);
+						if (fill) {
+							ctx.lineTo(x + res, y + res);
+							ctx.lineTo(x, y + res);
+							ctx.lineTo(x, y);
+						}
 						break;
-					case 14: // !TL (TR, BL, BR) -> Clockwise: TopCut -> Top-Right -> Bottom-Right -> Bottom-Left -> LeftCut
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(x, ly);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(x, ly);
+					case 14:
+						ctx.moveTo(top.x, top.y);
+						ctx.lineTo(left.x, left.y);
+						if (fill) {
+							ctx.lineTo(x, y + res);
+							ctx.lineTo(x + res, y + res);
+							ctx.lineTo(x + res, y);
+						}
 						break;
 				}
 			}
@@ -860,7 +746,7 @@ export class Engine {
 		const PAN_Y = this.pan_offset.y;
 		const CELL_SIZE = this.CELL_SIZE;
 
-		ctx.fillStyle = this.cachedColors.background;
+		ctx.fillStyle = rgbaToString(this.currentColors.background);
 		ctx.fillRect(0, 0, this.width, this.height);
 
 		ctx.save();
@@ -868,23 +754,22 @@ export class Engine {
 		ctx.scale(ZOOM, ZOOM);
 
 		// Visible Viewport Calculation (Grid Units)
+		// Add padding to ensure lines/balls don't pop in/out
 		const startCol = Math.floor(-PAN_X / ZOOM / CELL_SIZE) - 1;
 		const endCol = Math.ceil((this.width - PAN_X) / ZOOM / CELL_SIZE) + 1;
 		const startRow = Math.floor(-PAN_Y / ZOOM / CELL_SIZE) - 1;
 		const endRow = Math.ceil((this.height - PAN_Y) / ZOOM / CELL_SIZE) + 1;
 
-		// Optimized Grid Lines (Batch Draw)
+		// Draw Infinite Grid Lines
 		if (ZOOM > 0.5) {
-			ctx.strokeStyle = this.cachedColors.grid;
+			ctx.strokeStyle = rgbaToString(this.currentColors.grid);
 			ctx.lineWidth = 0.5 / ZOOM;
 			ctx.beginPath();
-			// Vertical
 			for (let i = startCol; i <= endCol; i++) {
 				const x = i * CELL_SIZE;
 				ctx.moveTo(x, startRow * CELL_SIZE);
 				ctx.lineTo(x, endRow * CELL_SIZE);
 			}
-			// Horizontal
 			for (let i = startRow; i <= endRow; i++) {
 				const y = i * CELL_SIZE;
 				ctx.moveTo(startCol * CELL_SIZE, y);
@@ -898,11 +783,9 @@ export class Engine {
 			const { col, row } = this.hover_pos;
 			const x = col * CELL_SIZE;
 			const y = row * CELL_SIZE;
-			ctx.fillStyle = this.cachedColors.grid_hover;
+			ctx.fillStyle = rgbaToString(this.currentColors.grid_hover);
 			ctx.beginPath();
-			// Optimization: avoid roundRect if zoomed out too far
-			if (ZOOM > 2 && ctx.roundRect)
-				ctx.roundRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4, 4 / ZOOM);
+			if (ctx.roundRect) ctx.roundRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4, 4 / ZOOM);
 			else ctx.rect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
 			ctx.fill();
 		}
@@ -1010,8 +893,11 @@ export class Engine {
 
 		if (minX === Infinity) return;
 
+		// Bounding box size + cell size
 		const pW = maxX - minX + this.CELL_SIZE;
 		const pH = maxY - minY + this.CELL_SIZE;
+
+		// Center point in World Space
 		const cX = minX + pW / 2;
 		const cY = minY + pH / 2;
 
@@ -1022,6 +908,7 @@ export class Engine {
 		newZoom = Math.max(MIN_ZOOM, Math.min(newZoom, 2.0));
 
 		this.target_zoom = newZoom;
+		// Move World Center (cX, cY) to Screen Center (width/2, height/2)
 		this.target_pan = {
 			x: this.width / 2 - cX * newZoom,
 			y: this.height / 2 - cY * newZoom
@@ -1051,9 +938,9 @@ export class Engine {
 		this.canvas.addEventListener('mousedown', this.onMouseDown);
 		window.addEventListener('mouseup', this.onMouseUp);
 		window.addEventListener('mousemove', this.onMouseMove);
-		this.canvas.addEventListener('wheel', this.onMouseWheel, { passive: false });
+		this.canvas.addEventListener('wheel', this.onMouseWheel);
 		window.addEventListener('resize', this.onWindowResize);
-		//window.addEventListener('keydown', this.onKeyDown);
+		window.addEventListener('keydown', this.onKeyDown);
 		window.addEventListener('beforeunload', this.pause);
 		document.addEventListener('visibilitychange', this.onVisibilityChange);
 	}
@@ -1065,7 +952,7 @@ export class Engine {
 		window.removeEventListener('mousemove', this.onMouseMove);
 		this.canvas.removeEventListener('wheel', this.onMouseWheel);
 		window.removeEventListener('resize', this.onWindowResize);
-		//window.removeEventListener('keydown', this.onKeyDown);
+		window.removeEventListener('keydown', this.onKeyDown);
 		window.removeEventListener('beforeunload', this.pause);
 		document.removeEventListener('visibilitychange', this.onVisibilityChange);
 	}
@@ -1091,12 +978,13 @@ export class Engine {
 	private onMouseDown = (event: MouseEvent) => {
 		if (!this.canvas_rect) return;
 
-		// Middle Mouse Panning (Button 1)
+		// --- NEW: Middle Mouse Panning ---
+		// Button 1 is the Middle Click / Wheel Click
 		if (event.button === 1) {
 			this.isPanning = true;
 			this.lastMousePos = { x: event.clientX, y: event.clientY };
-			document.body.style.cursor = 'grabbing';
-			event.preventDefault();
+			document.body.style.cursor = 'grabbing'; // Visual feedback
+			event.preventDefault(); // Prevent default browser scrolling/pasting
 			return;
 		}
 
@@ -1134,15 +1022,25 @@ export class Engine {
 	private onMouseMove = (event: MouseEvent) => {
 		if (!this.canvas_rect) return;
 
+		// --- UPDATED: Panning Logic ---
 		if (this.isPanning) {
 			const dx = event.clientX - this.lastMousePos.x;
 			const dy = event.clientY - this.lastMousePos.y;
+
+			// ONLY update the target.
+			// We let updateCamera() handle the actual movement (interpolation).
+			// This adds that "weighted" feel and removes jitter.
 			this.target_pan.x += dx;
 			this.target_pan.y += dy;
+
 			this.lastMousePos = { x: event.clientX, y: event.clientY };
+
+			// REMOVED: this.pan_offset += dx;
+			// REMOVED: this.draw(); -> The animate loop handles drawing
 			return;
 		}
 
+		// ... existing hover logic ...
 		const { col, row } = this.screenToGrid(
 			event.clientX - this.canvas_rect.left,
 			event.clientY - this.canvas_rect.top
@@ -1155,15 +1053,18 @@ export class Engine {
 				this.activeCells.add(key);
 				this.nextActiveCells.add(key);
 				this.syncVisualCells();
+				// We can keep draw() here for instant feedback on clicks,
+				// but usually the loop is fast enough.
 				this.draw();
 			}
 		}
 	};
-
 	private onMouseWheel = (event: WheelEvent) => {
 		if (!this.canvas_rect) return;
 		event.preventDefault();
 
+		// 1. PINCH GESTURE (Trackpad)
+		// Browsers map "Pinch" to Wheel + Ctrl
 		if (event.ctrlKey) {
 			const x = event.clientX - this.canvas_rect.left;
 			const y = event.clientY - this.canvas_rect.top;
@@ -1171,31 +1072,37 @@ export class Engine {
 			return;
 		}
 
+		// 2. DETECT TRACKPAD VS MOUSE
+		// Heuristic: Trackpads send small pixel deltas (often < 20).
+		// Mouse wheels send large lines or pixel steps (often > 50 or 100).
+		// Also, Mouse Wheels almost never send deltaX.
 		const isTrackpad = Math.abs(event.deltaY) < 50 && event.deltaX !== 0;
 
 		if (isTrackpad) {
+			// Trackpad: Two-finger swipe -> PAN
 			this.target_pan.x -= event.deltaX;
 			this.target_pan.y -= event.deltaY;
 		} else {
+			// Mouse: Wheel -> ZOOM (Your requested behavior)
 			const x = event.clientX - this.canvas_rect.left;
 			const y = event.clientY - this.canvas_rect.top;
 			this.zoom(event.deltaY < 0 ? 1 : -1, { x, y });
 		}
 	};
 
-	// private onKeyDown = (event: KeyboardEvent) => {
-	// 	if (event.code === 'Space') {
-	// 		event.preventDefault();
-	// 		this.togglePlay();
-	// 	}
-	// 	if (event.code === 'ArrowRight') {
-	// 		event.preventDefault();
-	// 		this.next_frame();
-	// 	}
-	// 	if (event.code === 'KeyC') {
-	// 		this.centerView();
-	// 	}
-	// };
+	private onKeyDown = (event: KeyboardEvent) => {
+		if (event.code === 'Space') {
+			event.preventDefault();
+			this.togglePlay();
+		}
+		if (event.code === 'ArrowRight') {
+			event.preventDefault();
+			this.next_frame();
+		}
+		if (event.code === 'KeyC') {
+			this.centerView();
+		}
+	};
 
 	setTheme(themeName: string, duration = 600) {
 		if (this.theme === themeName) return;
@@ -1205,13 +1112,21 @@ export class Engine {
 		this.transition.startColors = { ...this.currentColors };
 
 		const styles = getComputedStyle(document.documentElement);
-		const getCol = (name: string) => styles.getPropertyValue(name).trim();
-
-		this.transition.targetColors.background = this.parseCssColor(getCol('--color-bg'));
-		this.transition.targetColors.grid = this.parseCssColor(getCol('--color-grid'));
-		this.transition.targetColors.grid_hover = this.parseCssColor(getCol('--color-grid-hover'));
-		this.transition.targetColors.life_fill = this.parseCssColor(getCol('--color-life-fill'));
-		this.transition.targetColors.life_stroke = this.parseCssColor(getCol('--color-life-stroke'));
+		this.transition.targetColors.background = this.parseCssColor(
+			styles.getPropertyValue('--color-bg').trim()
+		);
+		this.transition.targetColors.grid = this.parseCssColor(
+			styles.getPropertyValue('--color-grid').trim()
+		);
+		this.transition.targetColors.grid_hover = this.parseCssColor(
+			styles.getPropertyValue('--color-grid-hover').trim()
+		);
+		this.transition.targetColors.life_fill = this.parseCssColor(
+			styles.getPropertyValue('--color-life-fill').trim()
+		);
+		this.transition.targetColors.life_stroke = this.parseCssColor(
+			styles.getPropertyValue('--color-life-stroke').trim()
+		);
 
 		this.transition.duration = duration;
 		this.transition.startTime = performance.now();
@@ -1249,9 +1164,6 @@ export class Engine {
 		this.currentColors.grid_hover = lerpColor(s.grid_hover, e.grid_hover, ease);
 		this.currentColors.life_fill = lerpColor(s.life_fill, e.life_fill, ease);
 		this.currentColors.life_stroke = lerpColor(s.life_stroke, e.life_stroke, ease);
-
-		// IMPORTANT: Update cache during transition
-		this.updateColorCache();
 
 		if (!this.controls.playing && this.transition.active) {
 			this.draw();

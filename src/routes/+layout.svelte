@@ -72,15 +72,14 @@
 	</div>
 {/if}
 
-<div class="grid min-h-svh grid-rows-[auto_1fr_auto] px-gap py-gap-y">
-	{#if page.route.id != '/'}
-		<Header />
-	{/if}
+<div class="grid min-h-svh grid-rows-[auto_1fr] px-gap py-gap-y">
+	<Header />
+
 	<div>{@render children()}</div>
-	<Footer />
 </div>
 
 <!-- <div class="relative z-10"><Wiki /></div> -->
 <svelte:head>
+	<title>Le jeu de la vie</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>

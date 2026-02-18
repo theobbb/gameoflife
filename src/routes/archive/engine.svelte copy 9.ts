@@ -1053,7 +1053,7 @@ export class Engine {
 		window.addEventListener('mousemove', this.onMouseMove);
 		this.canvas.addEventListener('wheel', this.onMouseWheel, { passive: false });
 		window.addEventListener('resize', this.onWindowResize);
-		//window.addEventListener('keydown', this.onKeyDown);
+		window.addEventListener('keydown', this.onKeyDown);
 		window.addEventListener('beforeunload', this.pause);
 		document.addEventListener('visibilitychange', this.onVisibilityChange);
 	}
@@ -1065,7 +1065,7 @@ export class Engine {
 		window.removeEventListener('mousemove', this.onMouseMove);
 		this.canvas.removeEventListener('wheel', this.onMouseWheel);
 		window.removeEventListener('resize', this.onWindowResize);
-		//window.removeEventListener('keydown', this.onKeyDown);
+		window.removeEventListener('keydown', this.onKeyDown);
 		window.removeEventListener('beforeunload', this.pause);
 		document.removeEventListener('visibilitychange', this.onVisibilityChange);
 	}
@@ -1183,19 +1183,19 @@ export class Engine {
 		}
 	};
 
-	// private onKeyDown = (event: KeyboardEvent) => {
-	// 	if (event.code === 'Space') {
-	// 		event.preventDefault();
-	// 		this.togglePlay();
-	// 	}
-	// 	if (event.code === 'ArrowRight') {
-	// 		event.preventDefault();
-	// 		this.next_frame();
-	// 	}
-	// 	if (event.code === 'KeyC') {
-	// 		this.centerView();
-	// 	}
-	// };
+	private onKeyDown = (event: KeyboardEvent) => {
+		if (event.code === 'Space') {
+			event.preventDefault();
+			this.togglePlay();
+		}
+		if (event.code === 'ArrowRight') {
+			event.preventDefault();
+			this.next_frame();
+		}
+		if (event.code === 'KeyC') {
+			this.centerView();
+		}
+	};
 
 	setTheme(themeName: string, duration = 600) {
 		if (this.theme === themeName) return;

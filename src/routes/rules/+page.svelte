@@ -19,22 +19,14 @@
 		],
 		['Cellule morte', [['3', 'naissance', 'life', [[0, 3, 8], []]]]]
 	];
+
+	$effect(() => {
+		document.documentElement.setAttribute('theme', 'black');
+	});
 </script>
 
 <div class="text-lg/5.5 text-balance">
 	<div class="grid-12 my-24">
-		<div class="col-span-4 col-start-2">
-			Le Jeu de la vie est un automate cellulaire inventé en 1970 par le mathématicien John Conway.
-			Il se présente sous la forme d’une grille de cellules qui évoluent automatiquement au fil du
-			temps.
-		</div>
-		<div class="col-span-5">
-			À partir d’une configuration initiale, des formes apparaissent, se transforment ou
-			disparaissent. Certaines restent stables, d’autres oscillent ou se déplacent, créant
-			l'illusion d’un système vivant. Le Jeu de la vie illustre comment des comportements complexes
-			peuvent émerger d’un système très simple, sans contrôle extérieur.
-		</div>
-
 		<!-- <div>À chaque génération, on regarde chaque cellule et ses voisines immédiates :</div>
 		<div>Une cellule vivante survit si elle a 2 ou 3 voisines vivantes, sinon elle meurt.</div>
 		<div>Une cellule morte devient vivante si elle a exactement 3 voisines vivantes.</div>
