@@ -1,12 +1,15 @@
 <script>
 	import Key from '$lib/ui/key.svelte';
-	import { get_engine } from '../../engine.svelte';
+	import { get_engine, TIME_SCALE } from '../../engine.svelte';
 
 	const engine = get_engine();
+
+	const [_, min, max] = TIME_SCALE;
+	const step_time = $derived(Number(((max - min) / 10).toFixed(4)));
 </script>
 
 <div class="flex flex-col items-end gap-gap">
-	<div class="grid-rows-2- grid grid-cols-3 gap-x-1.5">
+	<div class="grid grid-cols-3 gap-x-1.5">
 		<div class="col-span-full row-start-1">
 			<Key
 				action={engine.togglePlay}
@@ -18,7 +21,12 @@
 			<!-- <div class={[engine.isPlaying ? 'icon-[ri--pause-fill]' : 'icon-[ri--play-fill]']}></div> -->
 		</div>
 		<div class="col-start-2 row-start-2 -mb-3 w-11">
-			<Key action={engine.next_frame} label="temps+" key="ArrowUp">
+			<Key
+				action={() =>
+					(engine.controls.time_scale = Math.min(max, engine.controls.time_scale + step_time))}
+				label="temps+"
+				key="ArrowUp"
+			>
 				<div class="icon-[ri--arrow-up-fill] translate-y-2"></div>
 			</Key>
 		</div>
@@ -28,7 +36,12 @@
 			</Key>
 		</div>
 		<div class="row-start-3 w-11">
-			<Key action={engine.next_frame} label="temps-" key="ArrowRight">
+			<Key
+				action={() =>
+					(engine.controls.time_scale = Math.max(min, engine.controls.time_scale - step_time))}
+				label="temps-"
+				key="ArrowDown"
+			>
 				<div class="icon-[ri--arrow-down-fill] translate-y-1"></div>
 			</Key>
 		</div>

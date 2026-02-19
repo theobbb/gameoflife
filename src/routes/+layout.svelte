@@ -73,8 +73,9 @@
 {/if}
 
 <div class="grid min-h-svh grid-rows-[auto_1fr] px-gap py-gap-y">
-	<Header />
-
+	{#if page.route.id !== '/recherche'}
+		<Header />
+	{/if}
 	<div>{@render children()}</div>
 </div>
 

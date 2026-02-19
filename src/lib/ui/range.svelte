@@ -14,7 +14,7 @@
 	const step = $derived(Number(((max - min) / 10).toFixed(4)));
 	const display_value = $derived(Math.round(((value - min) / (max - min)) * 10));
 </script>
-
+ 
 <div class="group -mb-2.5- relative w-full gap-gap">
 	<div
 		class="bg-black/5 px-1.5 backdrop-blur group-first:rounded-t group-first:pt-1.5 group-last:rounded-b group-last:pb-1.5"

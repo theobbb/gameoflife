@@ -34,13 +34,13 @@
 	});
 </script>
 
-<button class="pointer-events-auto w-full cursor-pointer pb-5" onclick={action}>
-	<div class="relative w-full">
+<button class=" pointer-events-auto w-full cursor-pointer pb-5" onclick={action}>
+	<div class="group relative w-full">
 		<div class="absolute inset-0 translate-y-3 rounded border border-text bg-bg"></div>
 		<div
 			class={[
 				'relative z-10 h-8 w-full rounded border border-text bg-bg',
-				pressed ? 'translate-y-1.5' : '',
+				pressed ? 'translate-y-1.5' : 'group-hover:translate-y-0.5 group-active:translate-y-1.5',
 				'transition duration-50'
 			]}
 		>

@@ -4,7 +4,7 @@
 	const engine = get_engine();
 </script>
 
-<div class="grid grid-cols-2 gap-gap text-sm/4">
+<div class="gap-gap text-sm/4">
 	<div class="stats rounded bg-black/5 px-3 py-2 backdrop-blur">
 		<div>
 			<div>génération:</div>
@@ -22,9 +22,7 @@
 			<div>morts:</div>
 			<div>{engine.stats.n_died}</div>
 		</div>
-	</div>
-	<div class="stats rounded bg-black/5 px-3 py-2 backdrop-blur">
-		<div>
+		<div class="mt-2 border-t border-text/20 pt-1.5">
 			<div>zoom:</div>
 			<div>{(engine.controls.zoom_level * 100).toFixed(0)}%</div>
 		</div>
