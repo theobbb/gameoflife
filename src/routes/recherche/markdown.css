@@ -114,6 +114,13 @@
 	border-radius: 4px;
 	font-family: 'Consolas', 'Monaco', monospace;
 	font-size: 0.95em;
+
+	display: inline-block; /* allow block-like behavior */
+	max-width: 100%; /* stay inside container */
+	overflow-x: auto; /* horizontal scroll if needed */
+	white-space: pre-wrap; /* preserve line breaks and wrap */
+	word-wrap: break-word; /* break very long words */
+	vertical-align: middle;
 }
 
 /* ------------------------

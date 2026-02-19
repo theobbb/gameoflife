@@ -30,6 +30,6 @@
 <div>
 	<a href="/">← Retour</a>
 </div>
-<div class="mx-auto my-12 max-w-2xl px-4">
+<div class="mx-auto my-12 max-w-2xl">
 	<div class="markdown">{@html markdown}</div>
 </div>
