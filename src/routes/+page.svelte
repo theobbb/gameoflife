@@ -36,6 +36,7 @@
 	const engine = get_engine();
 
 	const pattern: Pattern | null = $derived(data.pattern);
+	engine.controls.interactive = false;
 
 	function init() {
 		if (!pattern) return;

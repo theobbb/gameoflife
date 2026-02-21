@@ -20,6 +20,8 @@
 	const pattern_nav = $derived(pattern ? navigation.get(slug) : null);
 	const theme = $derived(pattern_nav?.theme);
 
+	engine.controls.interactive = true;
+
 	//$inspect(engine.initialized, pattern.name, engine.current_pattern?.name);
 	$effect(() => {
 		if (engine.initialized && pattern && pattern.name != engine.current_pattern?.name) {
