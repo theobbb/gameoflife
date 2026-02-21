@@ -6,11 +6,11 @@ html[theme='black'] {
 	--color-text-2: rgb(143, 143, 143);
 	--color-text-card: white;
 
-	--color-grid: rgb(47, 109, 99);
+	--color-grid: rgba(0, 0, 0, 0);
 	--color-grid-hover: rgb(31, 136, 47);
 
-	--color-life-stroke: rgb(27, 27, 27);
-	--color-life-fill: rgb(121, 121, 121);
+	--color-life-stroke: rgba(144, 144, 144, 0.693);
+	--color-life-fill: rgba(48, 48, 48, 0.341);
 }
 
 html[theme='green'] {

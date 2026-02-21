@@ -59,11 +59,10 @@ export class Engine {
 	// --- STATE (Runes) ---
 	stats = $state({ n_gens: 0, fps: 0, n_active: 0, n_born: 0, n_died: 0 });
 	current_pattern: Pattern | null = $state(null);
-	theme = $state('');
+	theme = $state('default');
 
 	controls = $state({
 		playing: false,
-		interactive: false,
 		zoom_level: 4.0,
 		time_scale: TIME_SCALE[0],
 		stiffness: STIFFNESS[0],
@@ -280,8 +279,6 @@ export class Engine {
 	};
 
 	updateGrid = () => {
-		if (this.isAnimating) this.completeTransition();
-
 		const neighborCounts = new Map<string, number>();
 		const potentialCells = new Set<string>();
 
@@ -427,24 +424,16 @@ export class Engine {
 
 		let startX = targetX;
 		let startY = targetY;
-		let startPhase = Math.random() * 6.28318; // Default random phase
 
-		// Check neighbors to spawn organically out of an existing cell
+		// Optimization: Check neighbors via simple string math first
 		for (let dy = -1; dy <= 1; dy++) {
 			for (let dx = -1; dx <= 1; dx++) {
 				if (dx === 0 && dy === 0) continue;
-				const nKey = this.getKey(col + dx, row + dy);
-				if (this.activeCells.has(nKey)) {
-					const neighbor = this.visualCells.get(nKey);
-					if (neighbor) {
-						startX = neighbor.x;
-						startY = neighbor.y;
-						startPhase = neighbor.phase; // INHERIT parent's wobble phase!
-					} else {
-						startX += dx * this.CELL_SIZE;
-						startY += dy * this.CELL_SIZE;
-					}
-					dy = 2; // Break out of both loops
+				if (this.activeCells.has(this.getKey(col + dx, row + dy))) {
+					startX -= dx * this.CELL_SIZE;
+					startY -= dy * this.CELL_SIZE;
+					// Break out of both loops
+					dy = 2;
 					break;
 				}
 			}
@@ -459,10 +448,10 @@ export class Engine {
 			vy: 0,
 			targetX,
 			targetY,
-			phase: startPhase, // Apply inherited phase
-			phaseSpeed: 0.5 + Math.random() * 0.5, // Different speed so they slowly drift out of sync over time
+			phase: Math.random() * 6.28318,
+			phaseSpeed: 0.5 + Math.random() * 0.5,
 			alpha: 1,
-			scale: 0.0, // START INVISIBLE to prevent instant mass pop
+			scale: 0.5,
 			dying: false,
 			isManual: false
 		});
@@ -525,7 +514,7 @@ export class Engine {
 						cell.isManual = false;
 					}
 				} else if (this.isAnimating && cell.scale < 1) {
-					cell.scale = progress; // <--- CHANGED: Smoothly grows from 0.0 to 1.0!
+					cell.scale = 0.5 + 0.5 * progress; // Inlined Lerp
 				} else if (!this.isAnimating && !cell.isManual) {
 					cell.scale = 1;
 				}
@@ -947,8 +936,7 @@ export class Engine {
 	};
 
 	clearGrid = () => {
-		if (this.isAnimating) this.completeTransition();
-
+		console.log('clearing infinite grid');
 		this.controls.playing = false;
 		this.timeSinceLastUpdate = 0;
 
@@ -966,9 +954,7 @@ export class Engine {
 	};
 
 	drawPattern(rle_pattern: Pattern, theme?: string) {
-		if (this.isAnimating) this.completeTransition();
-
-		//this.controls.playing = false;
+		this.controls.playing = false;
 		this.isAnimating = true;
 		this.animationProgress = 0;
 		this.timeSinceLastUpdate = 0;
@@ -1025,10 +1011,9 @@ export class Engine {
 		if (minX === Infinity) return;
 
 		const pW = maxX - minX + this.CELL_SIZE;
-		const pH = maxY - minY + this.CELL_SIZE; // FIX: Get the exact midpoint between the outermost cells
-
-		const cX = (minX + maxX) / 2;
-		const cY = (minY + maxY) / 2;
+		const pH = maxY - minY + this.CELL_SIZE;
+		const cX = minX + pW / 2;
+		const cY = minY + pH / 2;
 
 		const availW = this.width - padding * 2;
 		const availH = this.height - padding * 2;
@@ -1053,11 +1038,6 @@ export class Engine {
 		const zoomRatio = this.target_zoom / oldZoom;
 		this.target_pan.x = origin.x - (origin.x - this.target_pan.x) * zoomRatio;
 		this.target_pan.y = origin.y - (origin.y - this.target_pan.y) * zoomRatio;
-	}
-
-	setZoom(level: number) {
-		this.target_zoom = level;
-		this.controls.zoom_level = level; // Snap instantly without smoothing
 	}
 
 	resetPattern = () => {
@@ -1109,7 +1089,7 @@ export class Engine {
 	}
 
 	private onMouseDown = (event: MouseEvent) => {
-		if (!this.controls.interactive || !this.canvas_rect) return;
+		if (!this.canvas_rect) return;
 
 		// Middle Mouse Panning (Button 1)
 		if (event.button === 1) {
@@ -1122,7 +1102,6 @@ export class Engine {
 
 		// Left Click (Drawing)
 		if (event.button === 0) {
-			if (this.isAnimating) this.completeTransition();
 			const { col, row } = this.screenToGrid(
 				event.clientX - this.canvas_rect.left,
 				event.clientY - this.canvas_rect.top
@@ -1145,7 +1124,6 @@ export class Engine {
 	};
 
 	private onMouseUp = () => {
-		if (!this.controls.interactive) return;
 		this.isMouseDown = false;
 		if (this.isPanning) {
 			this.isPanning = false;
@@ -1154,7 +1132,7 @@ export class Engine {
 	};
 
 	private onMouseMove = (event: MouseEvent) => {
-		if (!this.controls.interactive || !this.canvas_rect) return;
+		if (!this.canvas_rect) return;
 
 		if (this.isPanning) {
 			const dx = event.clientX - this.lastMousePos.x;
@@ -1183,7 +1161,7 @@ export class Engine {
 	};
 
 	private onMouseWheel = (event: WheelEvent) => {
-		if (!this.controls.interactive || !this.canvas_rect) return;
+		if (!this.canvas_rect) return;
 		event.preventDefault();
 
 		if (event.ctrlKey) {
@@ -1294,23 +1272,6 @@ export class Engine {
 		}
 		return { r: 0, g: 0, b: 0, a: 1 };
 	}
-
-	toggleInteractive = () => {
-		this.controls.interactive = !this.controls.interactive;
-
-		// If we just disabled it, gracefully release any active mouse states
-		if (!this.controls.interactive) {
-			this.isMouseDown = false;
-			if (this.isPanning) {
-				this.isPanning = false;
-				document.body.style.cursor = 'default';
-			}
-			this.hover_pos = null; // Clear the hover highlight
-
-			// Force a frame update to erase the hover box immediately if paused
-			if (!this.controls.playing && !this.isAnimating) this.draw();
-		}
-	};
 }
 
 export function init_engine() {

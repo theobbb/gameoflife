@@ -1,10 +1,13 @@
 <script>
 	import Button from '$lib/ui/button.svelte';
+	import { get_engine } from './engine.svelte';
+
+	const engine = get_engine();
 </script>
 
 <header class="pointer-events-none top-0 right-0 left-0 z-10 mb-gap-y">
-	<div class="grid grid-cols-3 gap-gap text-3xl/7.5">
-		<div>
+	<div class="grid grid-cols-3 items-center gap-gap">
+		<div class="text-3xl/7.5">
 			<a href="/" class="pointer-events-auto flex w-fit flex-col items-end">
 				<div>Le jeu de la vie</div>
 				<div class="text-2">organique</div>
@@ -12,7 +15,19 @@
 		</div>
 		<div class="flex justify-center">
 			<div class="pointer-events-auto">
-				<a href="/rules">Règles</a>
+				<button
+					class="flex min-w-28 cursor-pointer items-center gap-1 rounded bg-white/40 px-4 py-1 text-lg backdrop-blur"
+					onclick={engine.togglePlay}
+				>
+					{#if engine.controls.playing}
+						<div>Arrêter</div>
+						<div class="icon-[ri--pause-line] text-lg"></div>
+					{:else}
+						<div>Démarrer</div>
+						<div class="icon-[ri--play-line] text-lg"></div>
+					{/if}
+				</button>
+				<!-- <a href="/rules">Règles</a> -->
 			</div>
 		</div>
 		<div class=" flex justify-end">

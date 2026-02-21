@@ -48,6 +48,11 @@
 		// 	engine.destroy();
 		// };
 	});
+	$effect(() => {
+		if (!page.route.id) {
+			engine.controls.playing = true;
+		}
+	});
 
 	const raw_pattern: Pattern | null = $derived(page.data.pattern);
 	const slug = $derived(slugify(page.params.pattern || ''));
@@ -57,8 +62,17 @@
 	// $inspect('%%', engine.initialized);
 </script>
 
+{#if page.params.pattern || page.route.id == '/'}
+	<canvas
+		bind:this={canvas}
+		class={[
+			'-z-10- fixed inset-0 h-full w-full',
+			page.route.id == '/' ? 'pointer-events-none opacity-20' : '',
+			'transition duration-300 ease-in-out'
+		]}
+	></canvas>
+{/if}
 {#if page.params.pattern}
-	<canvas bind:this={canvas} class={['-z-10- fixed inset-0 h-full w-full']}></canvas>
 	<div class="grid-12 pointer-events-none fixed inset-gap z-100">
 		<div class="col-span-3 flex items-end">
 			<Card />
@@ -73,10 +87,10 @@
 {/if}
 
 <div class="grid min-h-svh grid-rows-[auto_1fr] px-gap py-gap-y">
-	{#if page.route.id !== '/recherche'}
+	{#if page.params.pattern}
 		<Header />
 	{/if}
-	<div>{@render children()}</div>
+	<div class="">{@render children()}</div>
 </div>
 
 <!-- <div class="relative z-10"><Wiki /></div> -->

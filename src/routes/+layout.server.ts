@@ -1,6 +1,8 @@
 import { parseRLE } from '$lib/utils/rle';
 import { error } from '@sveltejs/kit';
 
+export const prerender = true;
+
 import fs from 'node:fs';
 import path from 'node:path';
 

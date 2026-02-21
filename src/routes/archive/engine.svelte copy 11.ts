@@ -59,7 +59,7 @@ export class Engine {
 	// --- STATE (Runes) ---
 	stats = $state({ n_gens: 0, fps: 0, n_active: 0, n_born: 0, n_died: 0 });
 	current_pattern: Pattern | null = $state(null);
-	theme = $state('');
+	theme = $state('default');
 
 	controls = $state({
 		playing: false,
@@ -427,24 +427,16 @@ export class Engine {
 
 		let startX = targetX;
 		let startY = targetY;
-		let startPhase = Math.random() * 6.28318; // Default random phase
 
-		// Check neighbors to spawn organically out of an existing cell
+		// Optimization: Check neighbors via simple string math first
 		for (let dy = -1; dy <= 1; dy++) {
 			for (let dx = -1; dx <= 1; dx++) {
 				if (dx === 0 && dy === 0) continue;
-				const nKey = this.getKey(col + dx, row + dy);
-				if (this.activeCells.has(nKey)) {
-					const neighbor = this.visualCells.get(nKey);
-					if (neighbor) {
-						startX = neighbor.x;
-						startY = neighbor.y;
-						startPhase = neighbor.phase; // INHERIT parent's wobble phase!
-					} else {
-						startX += dx * this.CELL_SIZE;
-						startY += dy * this.CELL_SIZE;
-					}
-					dy = 2; // Break out of both loops
+				if (this.activeCells.has(this.getKey(col + dx, row + dy))) {
+					startX -= dx * this.CELL_SIZE;
+					startY -= dy * this.CELL_SIZE;
+					// Break out of both loops
+					dy = 2;
 					break;
 				}
 			}
@@ -459,10 +451,10 @@ export class Engine {
 			vy: 0,
 			targetX,
 			targetY,
-			phase: startPhase, // Apply inherited phase
-			phaseSpeed: 0.5 + Math.random() * 0.5, // Different speed so they slowly drift out of sync over time
+			phase: Math.random() * 6.28318,
+			phaseSpeed: 0.5 + Math.random() * 0.5,
 			alpha: 1,
-			scale: 0.0, // START INVISIBLE to prevent instant mass pop
+			scale: 0.5,
 			dying: false,
 			isManual: false
 		});
@@ -510,7 +502,7 @@ export class Engine {
 			cell.phase += cell.phaseSpeed * tSec;
 
 			// Optimization: select wobble amount once
-			const wobbleAmount = this.isAnimating ? 0.5 : 2;
+			const wobbleAmount = this.isAnimating ? this.lerp(2, 0.5, Math.sin(progress * Math.PI)) : 2;
 			const wobbleX = Math.sin(cell.phase) * wobbleAmount;
 			const wobbleY = Math.cos(cell.phase * 1.3) * wobbleAmount;
 
@@ -525,13 +517,11 @@ export class Engine {
 						cell.isManual = false;
 					}
 				} else if (this.isAnimating && cell.scale < 1) {
-					cell.scale = progress; // <--- CHANGED: Smoothly grows from 0.0 to 1.0!
+					cell.scale = 0.5 + 0.5 * progress; // Inlined Lerp
 				} else if (!this.isAnimating && !cell.isManual) {
 					cell.scale = 1;
 				}
 			} else {
-				cell.targetX += wobbleX * 0.1;
-				cell.targetY += wobbleY * 0.1;
 				cell.scale = 1 - progress;
 				cell.alpha = 1 - progress;
 			}
@@ -1025,10 +1015,9 @@ export class Engine {
 		if (minX === Infinity) return;
 
 		const pW = maxX - minX + this.CELL_SIZE;
-		const pH = maxY - minY + this.CELL_SIZE; // FIX: Get the exact midpoint between the outermost cells
-
-		const cX = (minX + maxX) / 2;
-		const cY = (minY + maxY) / 2;
+		const pH = maxY - minY + this.CELL_SIZE;
+		const cX = minX + pW / 2;
+		const cY = minY + pH / 2;
 
 		const availW = this.width - padding * 2;
 		const availH = this.height - padding * 2;
