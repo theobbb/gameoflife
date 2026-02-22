@@ -254,11 +254,11 @@
 	</div>
 </div>
 
-<div use:observer_sentinel id="12" class="relative z-1000">
+<div use:observer_sentinel id="12" class="relative z-1000 mt-[10svh]">
 	<div
 		class={[
-			grid.step == 12 ? 'delay-200' : 'translate-y-24 opacity-0 ',
-			'transition  duration-700 ease-in-out'
+			grid.step == 12 ? 'delay-200-' : 'translate-y-24- opacity-0- brightness-65- ',
+			'transition duration-700 ease-in-out'
 		]}
 	>
 		<Footer></Footer>
