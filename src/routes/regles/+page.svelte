@@ -12,7 +12,7 @@
 
 	let canvas: HTMLCanvasElement | null = $state(null);
 
-	const from_game = $derived(page.url.searchParams.get('from'));
+	let from_game = $state('');
 
 	const steps = ['grid', 'cells', 'neighbours', 'gens'];
 
@@ -50,6 +50,10 @@
 			return cleanup;
 		});
 	}
+
+	$effect(() => {
+		from_game = page.url.searchParams.get('from') || '';
+	});
 
 	onMount(() => {
 		if (canvas) {
