@@ -5,8 +5,7 @@
 	const {
 		is_active_group,
 		active_i,
-		group,
-		item,
+
 		i,
 		children
 	}: {

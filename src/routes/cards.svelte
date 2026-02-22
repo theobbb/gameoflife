@@ -42,7 +42,7 @@
 
 {#snippet content()}
 	{#if raw_pattern && current_group}
-		<div class="relative px-4 py-3 text-base/4.5 text-text-card">
+		<div class="relative px-4.5 py-3.5 text-base/4.5 text-text-card">
 			<div class="flex justify-between gap-4">
 				<div class="text-3xl/7.5">{raw_pattern.name}</div>
 				<div class="mt-0.5 font-mono text-sm/4.5 text-text-card/60">

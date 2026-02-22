@@ -1,4 +1,5 @@
 <script>
+	import { page } from '$app/state';
 	import Button from '$lib/ui/button.svelte';
 	import { get_engine } from './engine.svelte';
 
@@ -30,22 +31,22 @@
 				<!-- <a href="/rules">Règles</a> -->
 			</div>
 		</div>
-		<div class=" flex justify-end">
+		<!-- <div class=" flex justify-end">
 			<a href="/pulsar" class="pointer-events-auto">Jeu</a>
-		</div>
-		<!-- <div class="">
+		</div> -->
+		<div class="flex justify-end">
 			<div
 				class="pointer-events-auto rounded border border-black/50 bg-black/20 p-1 text-white backdrop-blur"
 			>
 				<a
-					class=" flex items-center gap-2 rounded px-3 py-1.5 transition duration-200 hover:bg-white/10"
-					href="/"
+					class="flex items-center gap-2 rounded px-3 py-1.5 pl-2 transition duration-200 hover:bg-white/10"
+					href="/regles?from={encodeURIComponent(page.url.pathname)}"
 				>
 					<div class="icon-[ri--information-2-line] shrink-0 text-lg"></div>
-					<div class="">Règles du jeu</div>
+					<div class="-mt-px">Règles du jeu</div>
 				</a>
 			</div>
-		</div> -->
+		</div>
 		<!-- <a class="col-span-2 rounded border border-text-2 px-3 py-2" href="/">
 			<div class="icon-[ri--book-open-line] text-xl"></div>
 			<div class="text-lg/5.5">Encyclopédie</div>

@@ -2,20 +2,20 @@
 	import '$lib/style/layout.css';
 	import '$lib/style/fonts.css';
 	import '$lib/style/themes.css';
-
 	import favicon from '$lib/assets/favicon.svg';
 	import { init_engine } from './engine.svelte';
 	import Controls from './+/controls/controls.svelte';
-	import { onMount, untrack } from 'svelte';
+
 	import Card from './cards.svelte';
 	import Wiki from './wiki.svelte';
 	import Header from './header.svelte';
 	import { page } from '$app/state';
-	import Footer from './footer.svelte';
+
 	import Nav from './nav.svelte';
 	import type { Pattern } from '$lib/types.js';
 	import { slugify } from '$lib/utils/slug.js';
 	import { groups, navigation } from '$lib/static.js';
+	import { onMount } from 'svelte';
 
 	let { data, children } = $props();
 
@@ -34,25 +34,24 @@
 	// 		//engine.destroy();
 	// 	};
 	// }
-
 	$effect(() => {
 		if (canvas) {
-			//console.log('mounting canvas');
 			engine.mount(canvas);
 		} else {
 			//console.log('unmounting canvas');
 			engine.destroy();
+			engine.setTheme('black');
 		}
 
 		// return () => {
 		// 	engine.destroy();
 		// };
 	});
-	$effect(() => {
-		if (!page.route.id) {
-			engine.controls.playing = true;
-		}
-	});
+	// $effect(() => {
+	// 	if (!page.route.id) {
+	// 		engine.controls.playing = true;
+	// 	}
+	// });
 
 	const raw_pattern: Pattern | null = $derived(page.data.pattern);
 	const slug = $derived(slugify(page.params.pattern || ''));

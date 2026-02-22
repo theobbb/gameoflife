@@ -3,7 +3,7 @@
 	import { navigation } from '$lib/static';
 	import type { Pattern } from '$lib/types';
 	import { slugify } from '$lib/utils/slug';
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { get_engine } from './engine.svelte';
 
 	const { data } = $props();
@@ -29,7 +29,7 @@
 		['Cellule morte', [['3', 'naissance', 'life', [[0, 3, 8], []]]]]
 	];
 
-	$effect(() => {
+	onMount(() => {
 		document.documentElement.setAttribute('theme', 'black');
 	});
 
@@ -62,9 +62,7 @@
 	});
 </script>
 
-<div
-	class="pointer-events-auto fixed inset-0 z-10 grid h-full grid-rows-3 px-4 text-lg/6 mix-blend-difference"
->
+<div class="pointer-events-auto fixed inset-0 z-10 grid h-full grid-rows-3 px-4 text-lg/6">
 	<div></div>
 	<div class="my-12 grid h-full grid-cols-2 justify-center gap-16">
 		<div class="flex flex-col items-end text-6xl">
@@ -73,7 +71,7 @@
 		</div>
 		<div class="">
 			<a
-				href="/pulsar"
+				href="/regles"
 				class="my-2 flex w-fit items-center gap-2 rounded border border-white bg-white/80 px-5 py-2 pr-4 font-mono text-xl text-bg transition hover:bg-white"
 			>
 				Commencer
@@ -82,8 +80,8 @@
 		</div>
 		<div class="col-span-full mb-48"></div>
 	</div>
-	<div class="text-2 mb-16 flex items-end justify-between text-2xl">
-		<div class=" flex gap-6">
+	<div class="text-2 mb-16 flex items-end justify-between text-2xl leading-tight">
+		<div class="flex gap-6">
 			<div class="mt-1 icon-[ri--information-line] text-balance"></div>
 			<div class="max-w-lg-">
 				Le Jeu de la vie est un automate cellulaire <br /> créé en 1970 par le mathématicien John
@@ -94,7 +92,7 @@
 			</div>
 		</div>
 		<div class="flex flex-col items-end text-xl">
-			<a href="" class="flex items-center gap-6">
+			<a href="/pulsar" class="flex items-center gap-6">
 				Accéder directement au jeu
 				<div class="mt-0.5 icon-[ri--arrow-right-long-fill]"></div>
 			</a>
