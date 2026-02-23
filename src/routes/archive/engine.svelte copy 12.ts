@@ -1132,20 +1132,14 @@ export class Engine {
 			if (this.activeCells.has(key)) {
 				this.activeCells.delete(key);
 				this.nextActiveCells.delete(key);
-				// Immediately remove visual cell — skip death animation for manual removal
-				this.visualCells.delete(key);
-				this.dyingCells.delete(key);
 			} else {
 				this.activeCells.add(key);
 				this.nextActiveCells.add(key);
-				// Immediately create visual cell in fully-alive state, bypassing born animation
-				if (!this.visualCells.has(key)) {
-					this.createVisualCell(key, col, row, true);
-				}
 			}
 
 			this.isAnimating = false;
-			this.isMouseDown = true; // syncVisualCells removed
+			this.syncVisualCells();
+			this.isMouseDown = true;
 			this.draw();
 		}
 	};
@@ -1182,10 +1176,7 @@ export class Engine {
 			if (!this.activeCells.has(key)) {
 				this.activeCells.add(key);
 				this.nextActiveCells.add(key);
-				// Direct visual cell creation instead of syncVisualCells
-				if (!this.visualCells.has(key)) {
-					this.createVisualCell(key, col, row, true);
-				}
+				this.syncVisualCells();
 				this.draw();
 			}
 		}

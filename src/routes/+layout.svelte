@@ -16,6 +16,7 @@
 	import { slugify } from '$lib/utils/slug.js';
 	import { groups, navigation } from '$lib/static.js';
 	import { onMount } from 'svelte';
+	import { MediaQuery } from 'svelte/reactivity';
 
 	let { data, children } = $props();
 
@@ -58,10 +59,11 @@
 	const pattern = $derived(raw_pattern ? navigation.get(slug) : null);
 	const group = $derived(groups.find((group) => group.name == pattern?.group));
 
+	const desktop = new MediaQuery('min-width: 1300px');
 	// $inspect('%%', engine.initialized);
 </script>
 
-{#if page.params.pattern || page.route.id == '/'}
+{#if (page.params.pattern || page.route.id == '/') && desktop.current}
 	<canvas
 		bind:this={canvas}
 		class={[
@@ -72,7 +74,7 @@
 	></canvas>
 {/if}
 {#if page.params.pattern}
-	<div class="grid-12 pointer-events-none fixed inset-gap z-100">
+	<div class="grid-12 pointer-events-none fixed inset-gap z-100 max-[1300px]:hidden">
 		<div class="col-span-3 flex items-end">
 			<Card />
 		</div>
@@ -85,11 +87,20 @@
 	</div>
 {/if}
 
-<div class="grid min-h-svh grid-rows-[auto_1fr] px-gap py-gap-y">
+<div class="grid min-h-svh grid-rows-[auto_1fr] px-gap py-gap-y max-[1300px]:hidden">
 	{#if page.params.pattern}
 		<Header />
 	{/if}
 	<div class="">{@render children()}</div>
+</div>
+
+<div class="fixed inset-4 flex items-center justify-center min-[1301px]:hidden">
+	<div class="text-center text-xl/6.5">
+		<div>Oups!</div>
+		<div>
+			Veuillez consulter ce site <br /> sur un <span class="underline">écran plus grand</span>.
+		</div>
+	</div>
 </div>
 
 <!-- <div class="relative z-10"><Wiki /></div> -->

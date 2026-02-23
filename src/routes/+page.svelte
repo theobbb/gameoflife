@@ -1,33 +1,10 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import { navigation } from '$lib/static';
 	import type { Pattern } from '$lib/types';
-	import { slugify } from '$lib/utils/slug';
 	import { onMount, untrack } from 'svelte';
 	import { get_engine } from './engine.svelte';
+	import Button from '$lib/ui/button.svelte';
 
 	const { data } = $props();
-
-	type Rule = [string, string, 'life' | 'death', [number[], number[]]];
-	const rules: [string, Rule[]][] = [
-		[
-			'Cellule vivante',
-			[
-				['0-1', 'meurt de solitude', 'death', [[0], []]],
-				['2-3', 'survit', 'life', [[0, 7], [3]]],
-				[
-					'4+',
-					'surpopulation',
-					'death',
-					[
-						[0, 2, 3, 7, 8],
-						[0, 3, 6, 7, 8]
-					]
-				]
-			]
-		],
-		['Cellule morte', [['3', 'naissance', 'life', [[0, 3, 8], []]]]]
-	];
 
 	onMount(() => {
 		document.documentElement.setAttribute('theme', 'black');
@@ -70,13 +47,7 @@
 			<div class="text-2">organique</div>
 		</div>
 		<div class="">
-			<a
-				href="/regles"
-				class="my-2 flex w-fit items-center gap-2 rounded border border-white bg-white/80 px-5 py-2 pr-4 font-mono text-xl text-bg transition hover:bg-white"
-			>
-				Commencer
-				<div class="mt-0.5 icon-[ri--arrow-right-long-fill]"></div>
-			</a>
+			<Button href="/regles">Commencer</Button>
 		</div>
 		<div class="col-span-full mb-48"></div>
 	</div>
@@ -92,57 +63,17 @@
 			</div>
 		</div>
 		<div class="flex flex-col items-end text-xl">
-			<a href="/pulsar" class="flex items-center gap-6">
+			<a href="/pulsar" class="hover:underline- flex items-center gap-6 transition hover:text-text">
 				Accéder directement au jeu
 				<div class="mt-0.5 icon-[ri--arrow-right-long-fill]"></div>
 			</a>
-			<a href="/recherche" class="flex items-center gap-6">
+			<a
+				href="/recherche"
+				class="hover:underline- flex items-center gap-6 transition hover:text-text"
+			>
 				Recherche
 				<div class="mt-0.5 icon-[ri--arrow-right-long-fill]"></div>
 			</a>
 		</div>
 	</div>
 </div>
-
-<!-- <div class="sticky bottom-4">
-	<button> Commencer </button>
-</div> -->
-
-<!-- <div>
-		<div class="icon-["></div>
-	</div> -->
-{#snippet grid_renderer(data: number[], step: 0 | 1, type: 'life' | 'death', group_i: number)}
-	<div class="grid aspect-square size-16 grid-cols-3 grid-rows-3 gap-0.5">
-		{#each { length: 9 } as cell, i}
-			<div
-				class={[
-					i == 4
-						? step == 0
-							? group_i == 0
-								? 'bg-white'
-								: 'bg-white/10'
-							: type == 'life'
-								? 'bg-white'
-								: 'bg-white/10'
-						: data.includes(i)
-							? 'bg-white/50'
-							: 'bg-white/5'
-				]}
-			></div>
-		{/each}
-	</div>
-{/snippet}
-
-<style>
-	.dot {
-		width: 1rem;
-		height: 1rem;
-		background-color: var(--color-text-2);
-		border-radius: 100%;
-	}
-	.line-y {
-		background-color: var(--color-text-2);
-		height: calc(var(--spacing) * 14);
-		width: calc(var(--spacing) * 0.5);
-	}
-</style>

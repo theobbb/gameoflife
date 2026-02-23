@@ -9,8 +9,6 @@ export const TIME_SCALE = [1.0, 0.1, 5.0];
 const BASE_CELL_SIZE = 20;
 export const STIFFNESS = [2, 0.5, 6];
 export const DAMPING = [0.2, 0.1, 0.5];
-
-// Metaball parameters
 export const METABALL_RADIUS = [0.4, 0.2, 0.6];
 export const METABALL_THRESHOLD = [1.0, 0.5, 2.0];
 export const RENDER_RESOLUTION = [5, 1, 9];
@@ -18,14 +16,138 @@ export const INFLUENCE_RADIUS = [6.0, 1.0, 11.0];
 
 const ANIMATION_DURATION = 500;
 const UPDATE_INTERVAL = 100;
-
-// Camera Settings
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 8;
 const ZOOM_SENSITIVITY = 0.1;
-const CAMERA_SMOOTHING = 0.25; // Adjusted for snappier feel
+const CAMERA_SMOOTHING = 0.25;
 
-const GAME_ENGINE_SYMBOL = Symbol('GAME_ENGINE_SYMBOL');
+// ─── Packed integer key ─────────────────────────────────────────────────────
+// Encode (col, row) as a single float64-safe integer.
+// We offset by 0x8000 so negative coords map to positive integers.
+const OFFSET = 0x8000; // supports ±32767 grid range
+const PACK_MUL = 0x10000; // 65536
+
+function packKey(col: number, row: number): number {
+	return (col + OFFSET) * PACK_MUL + (row + OFFSET);
+}
+
+function unpackKey(key: number): { col: number; row: number } {
+	const r = (key % PACK_MUL) - OFFSET;
+	const c = Math.floor(key / PACK_MUL) - OFFSET;
+	return { col: c, row: r };
+}
+
+// Inline-friendly versions (avoid object allocation in hot paths)
+function unpackCol(key: number): number {
+	return Math.floor(key / PACK_MUL) - OFFSET;
+}
+function unpackRow(key: number): number {
+	return (key % PACK_MUL) - OFFSET;
+}
+
+// ─── Lightweight open-addressing integer hash set ────────────────────────────
+// Much faster than JS Set<number> for integer keys (no boxing overhead).
+const HS_EMPTY = -1;
+const HS_DELETED = -2;
+const HS_INIT_CAP = 512;
+
+class IntSet {
+	private table: Float64Array;
+	private _size = 0;
+	private cap: number;
+	private mask: number;
+
+	constructor(cap = HS_INIT_CAP) {
+		this.cap = cap;
+		this.mask = cap - 1;
+		this.table = new Float64Array(cap).fill(HS_EMPTY);
+	}
+
+	get size() {
+		return this._size;
+	}
+
+	private rehash() {
+		const old = this.table;
+		this.cap <<= 1;
+		this.mask = this.cap - 1;
+		this.table = new Float64Array(this.cap).fill(HS_EMPTY);
+		this._size = 0;
+		for (let i = 0; i < old.length; i++) {
+			const v = old[i];
+			if (v !== HS_EMPTY && v !== HS_DELETED) this.add(v);
+		}
+	}
+
+	add(key: number): void {
+		if (this._size * 2 >= this.cap) this.rehash();
+		let i = (key ^ (key >>> 16)) & this.mask;
+		while (true) {
+			const v = this.table[i];
+			if (v === key) return;
+			if (v === HS_EMPTY || v === HS_DELETED) {
+				this.table[i] = key;
+				this._size++;
+				return;
+			}
+			i = (i + 1) & this.mask;
+		}
+	}
+
+	has(key: number): boolean {
+		let i = (key ^ (key >>> 16)) & this.mask;
+		while (true) {
+			const v = this.table[i];
+			if (v === key) return true;
+			if (v === HS_EMPTY) return false;
+			i = (i + 1) & this.mask;
+		}
+	}
+
+	delete(key: number): void {
+		let i = (key ^ (key >>> 16)) & this.mask;
+		while (true) {
+			const v = this.table[i];
+			if (v === key) {
+				this.table[i] = HS_DELETED;
+				this._size--;
+				return;
+			}
+			if (v === HS_EMPTY) return;
+			i = (i + 1) & this.mask;
+		}
+	}
+
+	clear(): void {
+		this.table.fill(HS_EMPTY);
+		this._size = 0;
+	}
+
+	// Iterate alive keys
+	forEach(cb: (key: number) => void): void {
+		const t = this.table;
+		for (let i = 0; i < t.length; i++) {
+			const v = t[i];
+			if (v !== HS_EMPTY && v !== HS_DELETED) cb(v);
+		}
+	}
+
+	keys(): number[] {
+		const out: number[] = [];
+		this.forEach((k) => out.push(k));
+		return out;
+	}
+
+	swap(other: IntSet): void {
+		// Swap internal buffers — O(1) generation flip
+		[this.table, other.table] = [other.table, this.table];
+		[this._size, other._size] = [other._size, this._size];
+		[this.cap, other.cap] = [other.cap, this.cap];
+		[this.mask, other.mask] = [other.mask, this.mask];
+	}
+}
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 type Vector2 = { x: number; y: number };
 
@@ -43,10 +165,9 @@ type Cell = {
 	alpha: number;
 	scale: number;
 	dying: boolean;
-	isManual?: boolean;
+	isManual: boolean;
 };
 
-// Cached color strings to avoid string manipulation every frame
 type ColorCache = {
 	background: string;
 	grid: string;
@@ -54,6 +175,10 @@ type ColorCache = {
 	life_stroke: string;
 	life_fill: string;
 };
+
+const GAME_ENGINE_SYMBOL = Symbol('GAME_ENGINE_SYMBOL');
+
+// ─── Engine ──────────────────────────────────────────────────────────────────
 
 export class Engine {
 	// --- STATE (Runes) ---
@@ -74,6 +199,7 @@ export class Engine {
 		influence_radius: INFLUENCE_RADIUS[0]
 	});
 
+	// Derived metaball params (cached as class fields, updated on demand)
 	private METABALL_RADIUS = $derived(BASE_CELL_SIZE * this.controls.metaball_radius);
 	private METABALL_RADIUS_SQ = $derived(this.METABALL_RADIUS * this.METABALL_RADIUS);
 	private METABALL_THRESHOLD = $derived(this.controls.metaball_threshold);
@@ -82,42 +208,43 @@ export class Engine {
 
 	initialized = $state(false);
 
-	// --- INTERNAL INFRASTRUCTURE ---
+	// --- CANVAS ---
 	private canvas: HTMLCanvasElement | null = null;
 	private ctx: CanvasRenderingContext2D | null = null;
 	private canvas_rect: DOMRect | null = null;
 	private width = 0;
 	private height = 0;
-	private animationId: number = 0;
+	private animationId = 0;
 
-	// --- INFINITE GRID DATA ---
 	private CELL_SIZE = BASE_CELL_SIZE;
 
-	// Sparse storage: "x,y" strings
-	private activeCells: Set<string> = new Set();
-	private nextActiveCells: Set<string> = new Set();
+	// ─── Cell Storage (integer-keyed hash sets) ───────────────────────────────
+	private activeCells: IntSet = new IntSet();
+	private nextActiveCells: IntSet = new IntSet();
 
-	// Visuals & Physics
-	private visualCells: Map<string, Cell> = new Map();
-	private dyingCells: Map<string, Cell> = new Map();
+	// Visual cells stored in a Map<number, Cell> — number keys avoid string alloc
+	private visualCells: Map<number, Cell> = new Map();
+	private dyingCells: Map<number, Cell> = new Map();
+
+	// Field buffer for metaballs
 	private fieldBuffer = new Float32Array(0);
 
-	// Reuse Paths to avoid GC
+	// Reusable Path2D objects
 	private fillPath: Path2D | null = null;
 	private strokePath: Path2D | null = null;
 
-	// Camera Physics
+	// --- Camera ---
 	private pan_offset: Vector2 = { x: 0, y: 0 };
-	private target_zoom = 4;
+	private target_zoom: number = 4;
 	private target_pan: Vector2 = { x: 0, y: 0 };
 
-	// Input State
+	// --- Input ---
 	private hover_pos: { col: number; row: number } | null = null;
 	private isMouseDown = false;
 	private isPanning = false;
 	private lastMousePos: Vector2 = { x: 0, y: 0 };
 
-	// Loop & Time Logic
+	// --- Loop / Timing ---
 	private lastFrameTime = 0;
 	private timeSinceLastUpdate = 0;
 	private isAnimating = false;
@@ -125,15 +252,15 @@ export class Engine {
 	private fpsTimer = 0;
 	private frameCount = 0;
 
+	// --- Colors ---
 	private currentColors = {
-		background: { r: 17, g: 17, b: 17, a: 1 },
-		grid: { r: 255, g: 255, b: 255, a: 0.2 },
-		grid_hover: { r: 255, g: 255, b: 255, a: 0.2 },
-		life_stroke: { r: 255, g: 255, b: 255, a: 0.85 },
-		life_fill: { r: 255, g: 255, b: 255, a: 0.85 }
+		background: { r: 17, g: 17, b: 17, a: 1 } as RGBA,
+		grid: { r: 255, g: 255, b: 255, a: 0.2 } as RGBA,
+		grid_hover: { r: 255, g: 255, b: 255, a: 0.2 } as RGBA,
+		life_stroke: { r: 255, g: 255, b: 255, a: 0.85 } as RGBA,
+		life_fill: { r: 255, g: 255, b: 255, a: 0.85 } as RGBA
 	};
 
-	// Pre-computed CSS strings
 	private cachedColors: ColorCache = {
 		background: 'rgba(17,17,17,1)',
 		grid: 'rgba(255,255,255,0.2)',
@@ -150,9 +277,14 @@ export class Engine {
 		targetColors: { ...this.currentColors }
 	};
 
+	// Scratch array reused every updateGrid() to avoid allocation
+	private neighborScratch: Float64Array = new Float64Array(8);
+
 	constructor() {
 		this.target_zoom = this.controls.zoom_level;
 	}
+
+	// ─── Mount / Destroy ─────────────────────────────────────────────────────
 
 	mount(canvas: HTMLCanvasElement) {
 		if (this.initialized) return;
@@ -161,10 +293,7 @@ export class Engine {
 		this.ctx = canvas.getContext('2d', { alpha: false }) as CanvasRenderingContext2D;
 
 		this.resize();
-		this.pan_offset = {
-			x: this.width / 2,
-			y: this.height / 2
-		};
+		this.pan_offset = { x: this.width / 2, y: this.height / 2 };
 		this.target_pan = { ...this.pan_offset };
 
 		this.setupListeners();
@@ -175,9 +304,17 @@ export class Engine {
 		this.fpsTimer = this.lastFrameTime;
 		this.animate(this.lastFrameTime);
 
-		console.log('engine initialized (Infinite Grid / Optimized)');
 		this.initialized = true;
 	}
+
+	destroy() {
+		if (this.animationId) cancelAnimationFrame(this.animationId);
+		this.removeListeners();
+		this.initialized = false;
+		this.current_pattern = null;
+	}
+
+	// ─── Theme ───────────────────────────────────────────────────────────────
 
 	private get_theme() {
 		const styles = getComputedStyle(document.documentElement);
@@ -215,34 +352,13 @@ export class Engine {
 		this.canvas.height = this.height;
 	}
 
-	destroy() {
-		console.log('destroying engine...');
-		if (this.animationId) cancelAnimationFrame(this.animationId);
-		this.removeListeners();
-		this.initialized = false;
-		this.current_pattern = null;
-	}
-
-	// --- COORDINATE HELPERS ---
-
-	// Simple string concatenation is fast enough for sparse grids
-	private getKey(col: number, row: number) {
-		return `${col},${row}`;
-	}
-
-	private parseKey(key: string): { col: number; row: number } {
-		// Optimized: avoid creating array if possible, but split is robust
-		const split = key.split(',');
-		return { col: +split[0], row: +split[1] };
-	}
-
-	// --- GAME LOOP ---
+	// ─── Game Loop ───────────────────────────────────────────────────────────
 
 	private animate = (currentTime: number) => {
 		this.animationId = requestAnimationFrame(this.animate);
 		this.processColorTransition(currentTime);
 
-		// FPS Calculation
+		// FPS
 		this.frameCount++;
 		if (currentTime - this.fpsTimer >= 1000) {
 			this.stats.fps = this.frameCount;
@@ -279,69 +395,72 @@ export class Engine {
 		}
 	};
 
+	// ─── Game of Life Update ─────────────────────────────────────────────────
+
 	updateGrid = () => {
 		if (this.isAnimating) this.completeTransition();
 
-		const neighborCounts = new Map<string, number>();
-		const potentialCells = new Set<string>();
+		// Use a Map<number,number> for neighbor counts.
+		// Reuse one Map instance and clear it each tick.
+		const neighborCounts = this._neighborCounts;
+		neighborCounts.clear();
 
-		// 1. Identify all active cells and their neighbors
-		for (const key of this.activeCells) {
-			potentialCells.add(key);
-			const { col, row } = this.parseKey(key);
+		const potentialSet = this._potentialSet;
+		potentialSet.clear();
 
-			// Unrolled loop for performance
-			let nKey: string;
-			// Top Row
-			nKey = this.getKey(col - 1, row - 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col, row - 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col + 1, row - 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			// Middle Row
-			nKey = this.getKey(col - 1, row);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col + 1, row);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			// Bottom Row
-			nKey = this.getKey(col - 1, row + 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col, row + 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-			nKey = this.getKey(col + 1, row + 1);
-			neighborCounts.set(nKey, (neighborCounts.get(nKey) || 0) + 1);
-			potentialCells.add(nKey);
-		}
+		// 1. Compute neighbor counts for all candidate cells
+		this.activeCells.forEach((key) => {
+			potentialSet.add(key);
+			const col = unpackCol(key);
+			const row = unpackRow(key);
+
+			// Unrolled 8-neighbor update
+			const k0 = packKey(col - 1, row - 1);
+			neighborCounts.set(k0, (neighborCounts.get(k0) || 0) + 1);
+			potentialSet.add(k0);
+			const k1 = packKey(col, row - 1);
+			neighborCounts.set(k1, (neighborCounts.get(k1) || 0) + 1);
+			potentialSet.add(k1);
+			const k2 = packKey(col + 1, row - 1);
+			neighborCounts.set(k2, (neighborCounts.get(k2) || 0) + 1);
+			potentialSet.add(k2);
+			const k3 = packKey(col - 1, row);
+			neighborCounts.set(k3, (neighborCounts.get(k3) || 0) + 1);
+			potentialSet.add(k3);
+			const k4 = packKey(col + 1, row);
+			neighborCounts.set(k4, (neighborCounts.get(k4) || 0) + 1);
+			potentialSet.add(k4);
+			const k5 = packKey(col - 1, row + 1);
+			neighborCounts.set(k5, (neighborCounts.get(k5) || 0) + 1);
+			potentialSet.add(k5);
+			const k6 = packKey(col, row + 1);
+			neighborCounts.set(k6, (neighborCounts.get(k6) || 0) + 1);
+			potentialSet.add(k6);
+			const k7 = packKey(col + 1, row + 1);
+			neighborCounts.set(k7, (neighborCounts.get(k7) || 0) + 1);
+			potentialSet.add(k7);
+		});
 
 		this.nextActiveCells.clear();
 		let active = 0,
 			born = 0,
 			died = 0;
 
-		// 2. Apply Rules
-		for (const key of potentialCells) {
+		// 2. Apply Conway rules
+		potentialSet.forEach((key) => {
 			const count = neighborCounts.get(key) || 0;
 			const wasAlive = this.activeCells.has(key);
-			const willBeAlive = wasAlive ? count === 2 || count === 3 : count === 3;
+			const alive = wasAlive ? count === 2 || count === 3 : count === 3;
 
-			if (willBeAlive) {
+			if (alive) {
 				this.nextActiveCells.add(key);
 				active++;
 				if (!wasAlive) born++;
 			} else if (wasAlive) {
 				died++;
 			}
-		}
+		});
 
-		// 3. Update Stats & Trigger Animation
 		this.stats.n_gens++;
 		this.stats.n_active = active;
 		this.stats.n_born = born;
@@ -352,36 +471,28 @@ export class Engine {
 		this.syncVisualCells();
 	};
 
+	// Persistent scratch structures to avoid per-tick allocation
+	private _neighborCounts: Map<number, number> = new Map();
+	private _potentialSet: IntSet = new IntSet();
+
+	// ─── Visual Cell Sync ────────────────────────────────────────────────────
+
 	private syncVisualCells() {
-		const allKeys = new Set([...this.activeCells, ...this.nextActiveCells]);
 		this.dyingCells.clear();
 
-		for (const key of allKeys) {
-			const isAlive = this.activeCells.has(key);
-			const willBeAlive = this.nextActiveCells.has(key);
-
-			// Existing / Manual Add
-			if (isAlive) {
-				if (!this.visualCells.has(key)) {
-					const { col, row } = this.parseKey(key);
-					this.createVisualCell(key, col, row, true);
-				}
+		// Handle existing active cells
+		this.activeCells.forEach((key) => {
+			if (!this.visualCells.has(key)) {
+				const col = unpackCol(key);
+				const row = unpackRow(key);
+				this.createVisualCell(key, col, row, true);
 			}
 
-			// Born
-			if (!isAlive && willBeAlive && this.isAnimating) {
-				if (!this.visualCells.has(key)) {
-					const { col, row } = this.parseKey(key);
-					this.createBornCell(key, col, row);
-				}
-			}
-
-			// Dying
-			if (isAlive && !willBeAlive && this.isAnimating) {
-				const cell = this.visualCells.get(key);
+			// Mark dying
+			if (this.isAnimating && !this.nextActiveCells.has(key)) {
+				const cell = this.visualCells.get(key)!;
 				if (cell) {
 					cell.dying = true;
-					// Random dispersion for dying cells
 					const angle = Math.random() * 6.28318;
 					const dist = this.CELL_SIZE * 2.5;
 					cell.targetX = cell.x + Math.cos(angle) * dist;
@@ -389,17 +500,28 @@ export class Engine {
 					this.dyingCells.set(key, cell);
 				}
 			}
+		});
+
+		// Handle born cells
+		if (this.isAnimating) {
+			this.nextActiveCells.forEach((key) => {
+				if (!this.activeCells.has(key) && !this.visualCells.has(key)) {
+					const col = unpackCol(key);
+					const row = unpackRow(key);
+					this.createBornCell(key, col, row);
+				}
+			});
 		}
 
+		// Prune dead visual cells immediately if not animating
 		if (!this.isAnimating) {
-			// Prune dead cells immediately if not animating
 			for (const key of this.visualCells.keys()) {
 				if (!this.activeCells.has(key)) this.visualCells.delete(key);
 			}
 		}
 	}
 
-	private createVisualCell(key: string, col: number, row: number, isManual: boolean) {
+	private createVisualCell(key: number, col: number, row: number, isManual: boolean) {
 		const targetX = col * this.CELL_SIZE + this.CELL_SIZE / 2;
 		const targetY = row * this.CELL_SIZE + this.CELL_SIZE / 2;
 
@@ -417,35 +539,34 @@ export class Engine {
 			alpha: 1,
 			scale: 0.1,
 			dying: false,
-			isManual: isManual
+			isManual
 		});
 	}
 
-	private createBornCell(key: string, col: number, row: number) {
+	private createBornCell(key: number, col: number, row: number) {
 		const targetX = col * this.CELL_SIZE + this.CELL_SIZE / 2;
 		const targetY = row * this.CELL_SIZE + this.CELL_SIZE / 2;
 
 		let startX = targetX;
 		let startY = targetY;
-		let startPhase = Math.random() * 6.28318; // Default random phase
+		let startPhase = Math.random() * 6.28318;
 
-		// Check neighbors to spawn organically out of an existing cell
-		for (let dy = -1; dy <= 1; dy++) {
+		// Spawn from a live neighbor to look organic
+		outer: for (let dy = -1; dy <= 1; dy++) {
 			for (let dx = -1; dx <= 1; dx++) {
 				if (dx === 0 && dy === 0) continue;
-				const nKey = this.getKey(col + dx, row + dy);
+				const nKey = packKey(col + dx, row + dy);
 				if (this.activeCells.has(nKey)) {
 					const neighbor = this.visualCells.get(nKey);
 					if (neighbor) {
 						startX = neighbor.x;
 						startY = neighbor.y;
-						startPhase = neighbor.phase; // INHERIT parent's wobble phase!
+						startPhase = neighbor.phase;
 					} else {
 						startX += dx * this.CELL_SIZE;
 						startY += dy * this.CELL_SIZE;
 					}
-					dy = 2; // Break out of both loops
-					break;
+					break outer;
 				}
 			}
 		}
@@ -459,19 +580,18 @@ export class Engine {
 			vy: 0,
 			targetX,
 			targetY,
-			phase: startPhase, // Apply inherited phase
-			phaseSpeed: 0.5 + Math.random() * 0.5, // Different speed so they slowly drift out of sync over time
+			phase: startPhase,
+			phaseSpeed: 0.5 + Math.random() * 0.5,
 			alpha: 1,
-			scale: 0.0, // START INVISIBLE to prevent instant mass pop
+			scale: 0.0,
 			dying: false,
 			isManual: false
 		});
 	}
 
 	private completeTransition() {
-		const temp = this.activeCells;
-		this.activeCells = this.nextActiveCells;
-		this.nextActiveCells = temp;
+		// O(1) generation swap via internal buffer swap
+		this.activeCells.swap(this.nextActiveCells);
 		this.nextActiveCells.clear();
 
 		this.isAnimating = false;
@@ -487,32 +607,31 @@ export class Engine {
 		}
 	}
 
-	// --- PHYSICS ---
-
-	private lerp(a: number, b: number, t: number): number {
-		return a + (b - a) * t;
-	}
+	// ─── Physics ─────────────────────────────────────────────────────────────
 
 	private updatePhysics(dt: number, scale: number) {
 		const tSec = (dt / 1000) * scale;
-		const STIFFNESS = this.controls.stiffness;
-		const DAMPING = Math.pow(this.controls.damping, tSec); // Pre-calc damping power
+		const STIFF = this.controls.stiffness * 0.25 * tSec;
+		const DAMP = Math.pow(this.controls.damping, tSec);
 		const CELL_SIZE = this.CELL_SIZE;
+		const VEL_SCALE = tSec * 60;
 
-		// Pre-calc animation curve
+		// Pre-calc eased animation progress once per frame
+		const ap = this.animationProgress;
 		const progress = this.isAnimating
-			? this.animationProgress < 0.5
-				? 4 * this.animationProgress ** 3
-				: 1 - Math.pow(-2 * this.animationProgress + 2, 3) / 2
+			? ap < 0.5
+				? 4 * ap * ap * ap
+				: 1 - (-2 * ap + 2) ** 3 / 2
 			: 0;
+
+		const animating = this.isAnimating;
 
 		for (const cell of this.visualCells.values()) {
 			cell.phase += cell.phaseSpeed * tSec;
 
-			// Optimization: select wobble amount once
-			const wobbleAmount = this.isAnimating ? 0.5 : 2;
-			const wobbleX = Math.sin(cell.phase) * wobbleAmount;
-			const wobbleY = Math.cos(cell.phase * 1.3) * wobbleAmount;
+			const wobbleAmt = animating ? 0.5 : 2;
+			const wobbleX = Math.sin(cell.phase) * wobbleAmt;
+			const wobbleY = Math.cos(cell.phase * 1.3) * wobbleAmt;
 
 			if (!cell.dying) {
 				cell.targetX = cell.gridX * CELL_SIZE + CELL_SIZE / 2 + wobbleX;
@@ -524,9 +643,9 @@ export class Engine {
 						cell.scale = 1;
 						cell.isManual = false;
 					}
-				} else if (this.isAnimating && cell.scale < 1) {
-					cell.scale = progress; // <--- CHANGED: Smoothly grows from 0.0 to 1.0!
-				} else if (!this.isAnimating && !cell.isManual) {
+				} else if (animating && cell.scale < 1) {
+					cell.scale = progress;
+				} else if (!animating) {
 					cell.scale = 1;
 				}
 			} else {
@@ -536,46 +655,40 @@ export class Engine {
 				cell.alpha = 1 - progress;
 			}
 
-			// Spring Physics
+			// Spring physics
 			const dx = cell.targetX - cell.x;
 			const dy = cell.targetY - cell.y;
-
-			cell.vx += dx * STIFFNESS * 0.25 * tSec;
-			cell.vy += dy * STIFFNESS * 0.25 * tSec;
-
-			cell.vx *= DAMPING;
-			cell.vy *= DAMPING;
-
-			cell.x += cell.vx * tSec * 60;
-			cell.y += cell.vy * tSec * 60;
+			cell.vx += dx * STIFF;
+			cell.vy += dy * STIFF;
+			cell.vx *= DAMP;
+			cell.vy *= DAMP;
+			cell.x += cell.vx * VEL_SCALE;
+			cell.y += cell.vy * VEL_SCALE;
 		}
 	}
 
 	private updateCamera() {
-		// Smooth Camera Transition
-		this.controls.zoom_level += (this.target_zoom - this.controls.zoom_level) * CAMERA_SMOOTHING;
-		this.pan_offset.x += (this.target_pan.x - this.pan_offset.x) * CAMERA_SMOOTHING;
-		this.pan_offset.y += (this.target_pan.y - this.pan_offset.y) * CAMERA_SMOOTHING;
+		const s = CAMERA_SMOOTHING;
+		this.controls.zoom_level += (this.target_zoom - this.controls.zoom_level) * s;
+		this.pan_offset.x += (this.target_pan.x - this.pan_offset.x) * s;
+		this.pan_offset.y += (this.target_pan.y - this.pan_offset.y) * s;
 
-		// Snapping for crispness when settled
 		if (Math.abs(this.target_zoom - this.controls.zoom_level) < 0.0001)
 			this.controls.zoom_level = this.target_zoom;
-
 		if (Math.abs(this.target_pan.x - this.pan_offset.x) < 0.01)
 			this.pan_offset.x = this.target_pan.x;
-
 		if (Math.abs(this.target_pan.y - this.pan_offset.y) < 0.01)
 			this.pan_offset.y = this.target_pan.y;
 	}
 
-	// --- DRAWING ---
+	// ─── Metaball Rendering ───────────────────────────────────────────────────
 
 	private drawMetaballs(minX: number, maxX: number, minY: number, maxY: number) {
 		const RENDER_RES = this.RENDER_RESOLUTION;
 		const INF_RAD = this.INFLUENCE_RADIUS;
+		const META_RAD_SQ = this.METABALL_RADIUS_SQ;
+		const META_THRESH = this.METABALL_THRESHOLD;
 
-		// 1. Setup Buffers
-		// Round to resolution alignment
 		const startX = Math.floor(minX / RENDER_RES) * RENDER_RES - INF_RAD;
 		const endX = Math.ceil(maxX / RENDER_RES) * RENDER_RES + INF_RAD;
 		const startY = Math.floor(minY / RENDER_RES) * RENDER_RES - INF_RAD;
@@ -588,11 +701,13 @@ export class Engine {
 		if (this.fieldBuffer.length < reqSize) this.fieldBuffer = new Float32Array(reqSize);
 		this.fieldBuffer.fill(0, 0, reqSize);
 
-		const META_RAD_SQ = this.METABALL_RADIUS_SQ;
-		const META_THRESH = this.METABALL_THRESHOLD;
+		const radUnits = INF_RAD / RENDER_RES;
+		const field = this.fieldBuffer;
 
-		// 2. Splatting: Add cells to field
+		// Splat each visible cell into the field
 		for (const cell of this.visualCells.values()) {
+			const strength = META_RAD_SQ * cell.scale * cell.scale * cell.alpha;
+			if (strength < 0.01) continue;
 			if (
 				cell.x < startX - INF_RAD ||
 				cell.x > endX + INF_RAD ||
@@ -601,38 +716,32 @@ export class Engine {
 			)
 				continue;
 
-			const strength = META_RAD_SQ * (cell.scale * cell.scale) * cell.alpha;
-			if (strength < 0.01) continue;
-
-			// Optimization: Integer conversions moved out of loop
 			const fx = (cell.x - startX) / RENDER_RES;
 			const fy = (cell.y - startY) / RENDER_RES;
-			const radUnits = INF_RAD / RENDER_RES;
 
 			const cMinX = Math.max(0, Math.floor(fx - radUnits));
 			const cMaxX = Math.min(bufW - 1, Math.ceil(fx + radUnits));
 			const cMinY = Math.max(0, Math.floor(fy - radUnits));
 			const cMaxY = Math.min(bufH - 1, Math.ceil(fy + radUnits));
 
+			const cx = cell.x;
+			const cy = cell.y;
+
 			for (let by = cMinY; by <= cMaxY; by++) {
 				const worldY = startY + by * RENDER_RES;
-				const dy = worldY - cell.y;
+				const dy = worldY - cy;
 				const dy2 = dy * dy;
-				const rowOffset = by * bufW;
+				const rowOff = by * bufW;
 
 				for (let bx = cMinX; bx <= cMaxX; bx++) {
 					const worldX = startX + bx * RENDER_RES;
-					const dx = worldX - cell.x;
+					const dx = worldX - cx;
 					const distSq = dx * dx + dy2;
-
-					// Avoid expensive sqrt, use inverse square law
-					if (distSq > 0.1) this.fieldBuffer[rowOffset + bx] += strength / distSq;
-					else this.fieldBuffer[rowOffset + bx] += 100; // Cap singularity
+					field[rowOff + bx] += distSq > 0.1 ? strength / distSq : 100;
 				}
 			}
 		}
 
-		// 3. Marching Squares (Optimized Dual-Path)
 		const ctx = this.ctx!;
 		ctx.fillStyle = this.cachedColors.life_fill;
 		ctx.strokeStyle = this.cachedColors.life_stroke;
@@ -640,7 +749,7 @@ export class Engine {
 		ctx.lineCap = 'round';
 		ctx.lineJoin = 'round';
 
-		// Clear paths without GC
+		// Reset paths without re-allocating (reset via new Path2D — cheapest way in browser)
 		this.fillPath = new Path2D();
 		this.strokePath = new Path2D();
 
@@ -651,33 +760,22 @@ export class Engine {
 	}
 
 	private march(startX: number, startY: number, w: number, h: number, res: number, thresh: number) {
-		if (!this.fillPath || !this.strokePath) return;
-
-		let x = 0,
-			y = 0;
-		let tl = 0,
-			tr = 0,
-			bl = 0,
-			br = 0;
-		let caseId = 0;
-
-		let tx = 0,
-			ry = 0,
-			bx_pos = 0,
-			ly = 0;
+		const fp = this.fillPath;
+		const sp = this.strokePath;
+		const fb = this.fieldBuffer;
 
 		for (let by = 0; by < h - 1; by++) {
-			const rowOffset = by * w;
-			const nextRowOffset = (by + 1) * w;
-			y = startY + by * res;
+			const rowOff = by * w;
+			const nextOff = (by + 1) * w;
+			const y = startY + by * res;
 
 			for (let bx = 0; bx < w - 1; bx++) {
-				tl = this.fieldBuffer[rowOffset + bx];
-				tr = this.fieldBuffer[rowOffset + bx + 1];
-				bl = this.fieldBuffer[nextRowOffset + bx];
-				br = this.fieldBuffer[nextRowOffset + bx + 1];
+				const tl = fb[rowOff + bx];
+				const tr = fb[rowOff + bx + 1];
+				const bl = fb[nextOff + bx];
+				const br = fb[nextOff + bx + 1];
 
-				caseId = 0;
+				let caseId = 0;
 				if (tl >= thresh) caseId |= 1;
 				if (tr >= thresh) caseId |= 2;
 				if (br >= thresh) caseId |= 4;
@@ -685,183 +783,166 @@ export class Engine {
 
 				if (caseId === 0) continue;
 
-				x = startX + bx * res;
+				const x = startX + bx * res;
+				const xR = x + res;
+				const yR = y + res;
 
-				// Optimization: Case 15 (Full Block) -> Rectangle (Clockwise)
+				// Full block — fastest path
 				if (caseId === 15) {
-					this.fillPath.rect(x, y, res, res);
+					fp.rect(x, y, res, res);
 					continue;
 				}
 
-				const xRes = x + res;
-				const yRes = y + res;
-
-				// --- Safe Interpolation ---
-				// Defaults to center if values are identical (prevents Infinity/NaN)
-				if (Math.abs(tr - tl) > 0.0001) tx = x + (res * (thresh - tl)) / (tr - tl);
-				else tx = x + res / 2;
-
-				if (Math.abs(br - tr) > 0.0001) ry = y + (res * (thresh - tr)) / (br - tr);
-				else ry = y + res / 2;
-
-				if (Math.abs(br - bl) > 0.0001) bx_pos = x + (res * (thresh - bl)) / (br - bl);
-				else bx_pos = x + res / 2;
-
-				if (Math.abs(bl - tl) > 0.0001) ly = y + (res * (thresh - tl)) / (bl - tl);
-				else ly = y + res / 2;
-
-				// --- Geometry Construction (Strictly Clockwise) ---
-				// TL=1, TR=2, BR=4, BL=8
+				// Interpolated edge midpoints (safe — guard against div-by-zero)
+				const tx = Math.abs(tr - tl) > 0.0001 ? x + (res * (thresh - tl)) / (tr - tl) : x + res / 2;
+				const ry = Math.abs(br - tr) > 0.0001 ? y + (res * (thresh - tr)) / (br - tr) : y + res / 2;
+				const bx_ =
+					Math.abs(br - bl) > 0.0001 ? x + (res * (thresh - bl)) / (br - bl) : x + res / 2;
+				const ly = Math.abs(bl - tl) > 0.0001 ? y + (res * (thresh - tl)) / (bl - tl) : y + res / 2;
 
 				switch (caseId) {
-					// --- Single Corner Cases ---
-					case 1: // TL
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(tx, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(tx, y);
+					case 1:
+						fp.moveTo(x, ly);
+						fp.lineTo(tx, y);
+						fp.lineTo(x, y);
+						fp.closePath();
+						sp.moveTo(x, ly);
+						sp.lineTo(tx, y);
 						break;
-					case 2: // TR
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(xRes, ry);
+					case 2:
+						fp.moveTo(tx, y);
+						fp.lineTo(xR, ry);
+						fp.lineTo(xR, y);
+						fp.closePath();
+						sp.moveTo(tx, y);
+						sp.lineTo(xR, ry);
 						break;
-					case 4: // BR
-						this.fillPath.moveTo(xRes, ry);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(xRes, ry);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 4:
+						fp.moveTo(xR, ry);
+						fp.lineTo(bx_, yR);
+						fp.lineTo(xR, yR);
+						fp.closePath();
+						sp.moveTo(xR, ry);
+						sp.lineTo(bx_, yR);
 						break;
-					case 8: // BL
-						this.fillPath.moveTo(bx_pos, yRes);
-						this.fillPath.lineTo(x, ly);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(bx_pos, yRes);
-						this.strokePath.lineTo(x, ly);
+					case 8:
+						fp.moveTo(bx_, yR);
+						fp.lineTo(x, ly);
+						fp.lineTo(x, yR);
+						fp.closePath();
+						sp.moveTo(bx_, yR);
+						sp.lineTo(x, ly);
 						break;
-
-					// --- Full Edge Cases (Rows/Cols) ---
-					case 3: // TL | TR (Top Row) -> Clockwise: LeftCut -> RightCut -> TR -> TL
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(xRes, ry);
+					case 3:
+						fp.moveTo(x, ly);
+						fp.lineTo(xR, ry);
+						fp.lineTo(xR, y);
+						fp.lineTo(x, y);
+						fp.closePath();
+						sp.moveTo(x, ly);
+						sp.lineTo(xR, ry);
 						break;
-					case 6: // TR | BR (Right Col) -> Clockwise: TopCut -> BottomCut -> BR -> TR
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 6:
+						fp.moveTo(tx, y);
+						fp.lineTo(bx_, yR);
+						fp.lineTo(xR, yR);
+						fp.lineTo(xR, y);
+						fp.closePath();
+						sp.moveTo(tx, y);
+						sp.lineTo(bx_, yR);
 						break;
-					case 9: // TL | BL (Left Col) -> Clockwise: TopCut -> TL -> BL -> BottomCut
-						// Note: Previous glitch was here (was CCW).
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 9:
+						fp.moveTo(tx, y);
+						fp.lineTo(x, y);
+						fp.lineTo(x, yR);
+						fp.lineTo(bx_, yR);
+						fp.closePath();
+						sp.moveTo(tx, y);
+						sp.lineTo(bx_, yR);
 						break;
-					case 12: // BL | BR (Bottom Row) -> Clockwise: LeftCut -> BL -> BR -> RightCut
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(xRes, ry);
+					case 12:
+						fp.moveTo(x, ly);
+						fp.lineTo(x, yR);
+						fp.lineTo(xR, yR);
+						fp.lineTo(xR, ry);
+						fp.closePath();
+						sp.moveTo(x, ly);
+						sp.lineTo(xR, ry);
 						break;
-
-					// --- Saddle Cases (Two Corners) ---
-					case 5: // TL | BR
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(tx, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.closePath();
-						this.fillPath.moveTo(xRes, ry);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(tx, y);
-						this.strokePath.moveTo(xRes, ry);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 5:
+						fp.moveTo(x, ly);
+						fp.lineTo(tx, y);
+						fp.lineTo(x, y);
+						fp.closePath();
+						fp.moveTo(xR, ry);
+						fp.lineTo(bx_, yR);
+						fp.lineTo(xR, yR);
+						fp.closePath();
+						sp.moveTo(x, ly);
+						sp.lineTo(tx, y);
+						sp.moveTo(xR, ry);
+						sp.lineTo(bx_, yR);
 						break;
-					case 10: // TR | BL
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.closePath();
-						this.fillPath.moveTo(bx_pos, yRes);
-						this.fillPath.lineTo(x, ly);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(xRes, ry);
-						this.strokePath.moveTo(bx_pos, yRes);
-						this.strokePath.lineTo(x, ly);
+					case 10:
+						fp.moveTo(tx, y);
+						fp.lineTo(xR, ry);
+						fp.lineTo(xR, y);
+						fp.closePath();
+						fp.moveTo(bx_, yR);
+						fp.lineTo(x, ly);
+						fp.lineTo(x, yR);
+						fp.closePath();
+						sp.moveTo(tx, y);
+						sp.lineTo(xR, ry);
+						sp.moveTo(bx_, yR);
+						sp.lineTo(x, ly);
 						break;
-
-					// --- 3-Corner Cases (Inverse Corners) ---
-					case 7: // !BL (TL, TR, BR) -> Clockwise: LeftCut -> Top-Left -> Top-Right -> Bottom-Right -> BottomCut
-						this.fillPath.moveTo(x, ly);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(x, ly);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 7:
+						fp.moveTo(x, ly);
+						fp.lineTo(x, y);
+						fp.lineTo(xR, y);
+						fp.lineTo(xR, yR);
+						fp.lineTo(bx_, yR);
+						fp.closePath();
+						sp.moveTo(x, ly);
+						sp.lineTo(bx_, yR);
 						break;
-					case 11: // !BR (TL, TR, BL) -> Clockwise: RightCut -> Top-Right -> Top-Left -> Bottom-Left -> BottomCut
-						this.fillPath.moveTo(xRes, ry);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(bx_pos, yRes);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(xRes, ry);
-						this.strokePath.lineTo(bx_pos, yRes);
+					case 11:
+						fp.moveTo(xR, ry);
+						fp.lineTo(xR, y);
+						fp.lineTo(x, y);
+						fp.lineTo(x, yR);
+						fp.lineTo(bx_, yR);
+						fp.closePath();
+						sp.moveTo(xR, ry);
+						sp.lineTo(bx_, yR);
 						break;
-					case 13: // !TR (TL, BL, BR) -> Clockwise: TopCut -> Top-Left -> Bottom-Left -> Bottom-Right -> RightCut
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(x, y);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(xRes, ry);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(xRes, ry);
+					case 13:
+						fp.moveTo(tx, y);
+						fp.lineTo(x, y);
+						fp.lineTo(x, yR);
+						fp.lineTo(xR, yR);
+						fp.lineTo(xR, ry);
+						fp.closePath();
+						sp.moveTo(tx, y);
+						sp.lineTo(xR, ry);
 						break;
-					case 14: // !TL (TR, BL, BR) -> Clockwise: TopCut -> Top-Right -> Bottom-Right -> Bottom-Left -> LeftCut
-						this.fillPath.moveTo(tx, y);
-						this.fillPath.lineTo(xRes, y);
-						this.fillPath.lineTo(xRes, yRes);
-						this.fillPath.lineTo(x, yRes);
-						this.fillPath.lineTo(x, ly);
-						this.fillPath.closePath();
-						this.strokePath.moveTo(tx, y);
-						this.strokePath.lineTo(x, ly);
+					case 14:
+						fp.moveTo(tx, y);
+						fp.lineTo(xR, y);
+						fp.lineTo(xR, yR);
+						fp.lineTo(x, yR);
+						fp.lineTo(x, ly);
+						fp.closePath();
+						sp.moveTo(tx, y);
+						sp.lineTo(x, ly);
 						break;
 				}
 			}
 		}
 	}
+
+	// ─── Draw ────────────────────────────────────────────────────────────────
 
 	private draw() {
 		if (!this.ctx) return;
@@ -878,24 +959,21 @@ export class Engine {
 		ctx.translate(PAN_X, PAN_Y);
 		ctx.scale(ZOOM, ZOOM);
 
-		// Visible Viewport Calculation (Grid Units)
 		const startCol = Math.floor(-PAN_X / ZOOM / CELL_SIZE) - 1;
 		const endCol = Math.ceil((this.width - PAN_X) / ZOOM / CELL_SIZE) + 1;
 		const startRow = Math.floor(-PAN_Y / ZOOM / CELL_SIZE) - 1;
 		const endRow = Math.ceil((this.height - PAN_Y) / ZOOM / CELL_SIZE) + 1;
 
-		// Optimized Grid Lines (Batch Draw)
+		// Grid lines (batch)
 		if (ZOOM > 0.5) {
 			ctx.strokeStyle = this.cachedColors.grid;
 			ctx.lineWidth = 0.5 / ZOOM;
 			ctx.beginPath();
-			// Vertical
 			for (let i = startCol; i <= endCol; i++) {
 				const x = i * CELL_SIZE;
 				ctx.moveTo(x, startRow * CELL_SIZE);
 				ctx.lineTo(x, endRow * CELL_SIZE);
 			}
-			// Horizontal
 			for (let i = startRow; i <= endRow; i++) {
 				const y = i * CELL_SIZE;
 				ctx.moveTo(startCol * CELL_SIZE, y);
@@ -904,14 +982,13 @@ export class Engine {
 			ctx.stroke();
 		}
 
-		// Draw Hover
+		// Hover
 		if (this.hover_pos) {
 			const { col, row } = this.hover_pos;
 			const x = col * CELL_SIZE;
 			const y = row * CELL_SIZE;
 			ctx.fillStyle = this.cachedColors.grid_hover;
 			ctx.beginPath();
-			// Optimization: avoid roundRect if zoomed out too far
 			if (ZOOM > 2 && ctx.roundRect)
 				ctx.roundRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4, 4 / ZOOM);
 			else ctx.rect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
@@ -930,7 +1007,7 @@ export class Engine {
 		ctx.restore();
 	}
 
-	// --- CONTROLS ---
+	// ─── Controls ────────────────────────────────────────────────────────────
 
 	togglePlay = () => {
 		this.controls.playing = !this.controls.playing;
@@ -948,27 +1025,23 @@ export class Engine {
 
 	clearGrid = () => {
 		if (this.isAnimating) this.completeTransition();
-
 		this.controls.playing = false;
 		this.timeSinceLastUpdate = 0;
-
-		// Stats
 		this.stats.n_gens = 0;
 		this.stats.n_active = 0;
 		this.stats.n_born = 0;
 		this.stats.n_died = 0;
-
 		this.nextActiveCells.clear();
-		this.isAnimating = true;
+		this.activeCells.clear();
+		this.visualCells.clear();
+		this.dyingCells.clear();
+		this.isAnimating = false;
 		this.animationProgress = 0;
-		this.syncVisualCells();
 		this.draw();
 	};
 
 	drawPattern(rle_pattern: Pattern, theme?: string) {
 		if (this.isAnimating) this.completeTransition();
-
-		//this.controls.playing = false;
 		this.isAnimating = true;
 		this.animationProgress = 0;
 		this.timeSinceLastUpdate = 0;
@@ -990,7 +1063,7 @@ export class Engine {
 		for (let row = 0; row < height; row++) {
 			for (let col = 0; col < width; col++) {
 				if (pattern[row][col]) {
-					this.nextActiveCells.add(this.getKey(startCol + col, startRow + row));
+					this.nextActiveCells.add(packKey(startCol + col, startRow + row));
 					active++;
 				}
 			}
@@ -1025,15 +1098,12 @@ export class Engine {
 		if (minX === Infinity) return;
 
 		const pW = maxX - minX + this.CELL_SIZE;
-		const pH = maxY - minY + this.CELL_SIZE; // FIX: Get the exact midpoint between the outermost cells
-
+		const pH = maxY - minY + this.CELL_SIZE;
 		const cX = (minX + maxX) / 2;
 		const cY = (minY + maxY) / 2;
-
-		const availW = this.width - padding * 2;
-		const availH = this.height - padding * 2;
-
-		let newZoom = Math.min(availW / pW, availH / pH);
+		const aW = this.width - padding * 2;
+		const aH = this.height - padding * 2;
+		let newZoom = Math.min(aW / pW, aH / pH);
 		newZoom = Math.max(MIN_ZOOM, Math.min(newZoom, 2.0));
 
 		this.target_zoom = newZoom;
@@ -1045,26 +1115,25 @@ export class Engine {
 
 	zoom(direction: 1 | -1, origin: Vector2) {
 		const oldZoom = this.target_zoom;
-		if (direction > 0) {
-			this.target_zoom = Math.min(MAX_ZOOM, this.target_zoom * (1 + ZOOM_SENSITIVITY));
-		} else {
-			this.target_zoom = Math.max(MIN_ZOOM, this.target_zoom * (1 - ZOOM_SENSITIVITY));
-		}
-		const zoomRatio = this.target_zoom / oldZoom;
-		this.target_pan.x = origin.x - (origin.x - this.target_pan.x) * zoomRatio;
-		this.target_pan.y = origin.y - (origin.y - this.target_pan.y) * zoomRatio;
+		this.target_zoom =
+			direction > 0
+				? Math.min(MAX_ZOOM, this.target_zoom * (1 + ZOOM_SENSITIVITY))
+				: Math.max(MIN_ZOOM, this.target_zoom * (1 - ZOOM_SENSITIVITY));
+		const ratio = this.target_zoom / oldZoom;
+		this.target_pan.x = origin.x - (origin.x - this.target_pan.x) * ratio;
+		this.target_pan.y = origin.y - (origin.y - this.target_pan.y) * ratio;
 	}
 
 	setZoom(level: number) {
 		this.target_zoom = level;
-		this.controls.zoom_level = level; // Snap instantly without smoothing
+		this.controls.zoom_level = level;
 	}
 
 	resetPattern = () => {
 		if (this.current_pattern) this.drawPattern(this.current_pattern);
 	};
 
-	// --- INPUT LISTENERS ---
+	// ─── Input ───────────────────────────────────────────────────────────────
 
 	private setupListeners() {
 		if (!this.canvas) return;
@@ -1073,7 +1142,6 @@ export class Engine {
 		window.addEventListener('mousemove', this.onMouseMove);
 		this.canvas.addEventListener('wheel', this.onMouseWheel, { passive: false });
 		window.addEventListener('resize', this.onWindowResize);
-		//window.addEventListener('keydown', this.onKeyDown);
 		window.addEventListener('beforeunload', this.pause);
 		document.addEventListener('visibilitychange', this.onVisibilityChange);
 	}
@@ -1085,7 +1153,6 @@ export class Engine {
 		window.removeEventListener('mousemove', this.onMouseMove);
 		this.canvas.removeEventListener('wheel', this.onMouseWheel);
 		window.removeEventListener('resize', this.onWindowResize);
-		//window.removeEventListener('keydown', this.onKeyDown);
 		window.removeEventListener('beforeunload', this.pause);
 		document.removeEventListener('visibilitychange', this.onVisibilityChange);
 	}
@@ -1111,7 +1178,6 @@ export class Engine {
 	private onMouseDown = (event: MouseEvent) => {
 		if (!this.controls.interactive || !this.canvas_rect) return;
 
-		// Middle Mouse Panning (Button 1)
 		if (event.button === 1) {
 			this.isPanning = true;
 			this.lastMousePos = { x: event.clientX, y: event.clientY };
@@ -1120,32 +1186,23 @@ export class Engine {
 			return;
 		}
 
-		// Left Click (Drawing)
 		if (event.button === 0) {
 			if (this.isAnimating) this.completeTransition();
 			const { col, row } = this.screenToGrid(
 				event.clientX - this.canvas_rect.left,
 				event.clientY - this.canvas_rect.top
 			);
-			const key = this.getKey(col, row);
-
+			const key = packKey(col, row);
 			if (this.activeCells.has(key)) {
 				this.activeCells.delete(key);
 				this.nextActiveCells.delete(key);
-				// Immediately remove visual cell — skip death animation for manual removal
-				this.visualCells.delete(key);
-				this.dyingCells.delete(key);
 			} else {
 				this.activeCells.add(key);
 				this.nextActiveCells.add(key);
-				// Immediately create visual cell in fully-alive state, bypassing born animation
-				if (!this.visualCells.has(key)) {
-					this.createVisualCell(key, col, row, true);
-				}
 			}
-
 			this.isAnimating = false;
-			this.isMouseDown = true; // syncVisualCells removed
+			this.syncVisualCells();
+			this.isMouseDown = true;
 			this.draw();
 		}
 	};
@@ -1163,10 +1220,8 @@ export class Engine {
 		if (!this.controls.interactive || !this.canvas_rect) return;
 
 		if (this.isPanning) {
-			const dx = event.clientX - this.lastMousePos.x;
-			const dy = event.clientY - this.lastMousePos.y;
-			this.target_pan.x += dx;
-			this.target_pan.y += dy;
+			this.target_pan.x += event.clientX - this.lastMousePos.x;
+			this.target_pan.y += event.clientY - this.lastMousePos.y;
 			this.lastMousePos = { x: event.clientX, y: event.clientY };
 			return;
 		}
@@ -1178,14 +1233,11 @@ export class Engine {
 		this.hover_pos = { col, row };
 
 		if (this.isMouseDown) {
-			const key = this.getKey(col, row);
+			const key = packKey(col, row);
 			if (!this.activeCells.has(key)) {
 				this.activeCells.add(key);
 				this.nextActiveCells.add(key);
-				// Direct visual cell creation instead of syncVisualCells
-				if (!this.visualCells.has(key)) {
-					this.createVisualCell(key, col, row, true);
-				}
+				this.syncVisualCells();
 				this.draw();
 			}
 		}
@@ -1203,7 +1255,6 @@ export class Engine {
 		}
 
 		const isTrackpad = Math.abs(event.deltaY) < 50 && event.deltaX !== 0;
-
 		if (isTrackpad) {
 			this.target_pan.x -= event.deltaX;
 			this.target_pan.y -= event.deltaY;
@@ -1214,19 +1265,7 @@ export class Engine {
 		}
 	};
 
-	// private onKeyDown = (event: KeyboardEvent) => {
-	// 	if (event.code === 'Space') {
-	// 		event.preventDefault();
-	// 		this.togglePlay();
-	// 	}
-	// 	if (event.code === 'ArrowRight') {
-	// 		event.preventDefault();
-	// 		this.next_frame();
-	// 	}
-	// 	if (event.code === 'KeyC') {
-	// 		this.centerView();
-	// 	}
-	// };
+	// ─── Theme / Color Transition ─────────────────────────────────────────────
 
 	setTheme(themeName: string, duration = 600) {
 		if (this.theme === themeName) return;
@@ -1236,7 +1275,7 @@ export class Engine {
 		this.transition.startColors = { ...this.currentColors };
 
 		const styles = getComputedStyle(document.documentElement);
-		const getCol = (name: string) => styles.getPropertyValue(name).trim();
+		const getCol = (n: string) => styles.getPropertyValue(n).trim();
 
 		this.transition.targetColors.background = this.parseCssColor(getCol('--color-bg'));
 		this.transition.targetColors.grid = this.parseCssColor(getCol('--color-grid'));
@@ -1262,26 +1301,23 @@ export class Engine {
 			progress = 1;
 			this.transition.active = false;
 		}
+
 		const ease = 1 - Math.pow(1 - progress, 4);
-
-		const lerp = (start: number, end: number, t: number) => start + (end - start) * t;
-		const lerpColor = (start: RGBA, end: RGBA, t: number): RGBA => ({
-			r: lerp(start.r, end.r, t),
-			g: lerp(start.g, end.g, t),
-			b: lerp(start.b, end.b, t),
-			a: lerp(start.a, end.a, t)
-		});
-
 		const s = this.transition.startColors;
 		const e = this.transition.targetColors;
 
-		this.currentColors.background = lerpColor(s.background, e.background, ease);
-		this.currentColors.grid = lerpColor(s.grid, e.grid, ease);
-		this.currentColors.grid_hover = lerpColor(s.grid_hover, e.grid_hover, ease);
-		this.currentColors.life_fill = lerpColor(s.life_fill, e.life_fill, ease);
-		this.currentColors.life_stroke = lerpColor(s.life_stroke, e.life_stroke, ease);
+		const lerpC = (a: RGBA, b: RGBA, t: number): RGBA => ({
+			r: a.r + (b.r - a.r) * t,
+			g: a.g + (b.g - a.g) * t,
+			b: a.b + (b.b - a.b) * t,
+			a: a.a + (b.a - a.a) * t
+		});
 
-		// IMPORTANT: Update cache during transition
+		this.currentColors.background = lerpC(s.background, e.background, ease);
+		this.currentColors.grid = lerpC(s.grid, e.grid, ease);
+		this.currentColors.grid_hover = lerpC(s.grid_hover, e.grid_hover, ease);
+		this.currentColors.life_fill = lerpC(s.life_fill, e.life_fill, ease);
+		this.currentColors.life_stroke = lerpC(s.life_stroke, e.life_stroke, ease);
 		this.updateColorCache();
 
 		if (!this.controls.playing && this.transition.active) {
@@ -1292,35 +1328,26 @@ export class Engine {
 
 	private parseCssColor(cssString: string, defaultAlpha = 1): RGBA {
 		if (!cssString) return { r: 0, g: 0, b: 0, a: 1 };
-		const match = cssString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-		if (match) {
-			return {
-				r: parseInt(match[1], 10),
-				g: parseInt(match[2], 10),
-				b: parseInt(match[3], 10),
-				a: match[4] ? parseFloat(match[4]) : defaultAlpha
-			};
-		}
+		const m = cssString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+		if (m) return { r: +m[1], g: +m[2], b: +m[3], a: m[4] ? +m[4] : defaultAlpha };
 		return { r: 0, g: 0, b: 0, a: 1 };
 	}
 
 	toggleInteractive = () => {
 		this.controls.interactive = !this.controls.interactive;
-
-		// If we just disabled it, gracefully release any active mouse states
 		if (!this.controls.interactive) {
 			this.isMouseDown = false;
 			if (this.isPanning) {
 				this.isPanning = false;
 				document.body.style.cursor = 'default';
 			}
-			this.hover_pos = null; // Clear the hover highlight
-
-			// Force a frame update to erase the hover box immediately if paused
+			this.hover_pos = null;
 			if (!this.controls.playing && !this.isAnimating) this.draw();
 		}
 	};
 }
+
+// ─── Context Helpers ─────────────────────────────────────────────────────────
 
 export function init_engine() {
 	return setContext(GAME_ENGINE_SYMBOL, new Engine());
