@@ -7,7 +7,7 @@ export const CELL_COLOR = 'rgba(255, 255, 255, 0.9)';
 export const GRID_COLOR = 'rgba(150, 150, 150, 1)';
 
 const HOVER_SCALE = 0.8;
-const HOVER_ACTIVE_COLOR = 'rgba(255, 255, 0, 0.5)';
+const HOVER_ACTIVE_COLOR = 'rgba(0, 0, 0, 0.3)';
 const HOVER_INACTIVE_COLOR = 'rgba(255, 255, 255, 0.1)';
 
 // steps
