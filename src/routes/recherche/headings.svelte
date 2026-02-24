@@ -15,7 +15,7 @@
 					}
 				}
 			},
-			{ rootMargin: '0px 0px -80% 0px' }
+			{ rootMargin: '-10% 0px -70% 0px' }
 		);
 		const elements = outline.map(({ id }) => document.getElementById(id)).filter(Boolean);
 		elements.forEach((el) => observer.observe(el!));
@@ -23,20 +23,42 @@
 	});
 </script>
 
-<nav class="text-sm">
-	<div class="space-y-0.5- border-white/10">
-		{#each outline as { id, text, depth }}
-			<div class="border-l" style="padding-left: {(depth - minDepth) * 1}rem">
-				<a
-					href="#{id}"
-					class="block py-1 pl-3 leading-snug transition-colors hover:text-white
-                        {activeId === id
-						? '-ml-px border-l-2 border-white font-medium text-white/90'
-						: 'text-white/40'}"
-				>
-					{text}
-				</a>
-			</div>
+<nav class="text-sm leading-snug">
+	<div class=" border-white/10">
+		{#each outline as { id, text, depth }, i}
+			<a
+				href="#{id}"
+				class={[
+					'block border-l py-0.5 pl-3 transition-colors hover:text-white',
+
+					activeId === id
+						? ' border-white font-medium text-white/90'
+						: 'border-white/20 text-white/40'
+				]}
+				style="padding-left: {(depth - minDepth) * 1 + 0.8}rem"
+			>
+				<span class="block -translate-y-px">{text}</span>
+			</a>
 		{/each}
 	</div>
 </nav>
+
+<!-- <nav class="text-sm leading-snug">
+	<div class=" border-white/10">
+		{#each outline as { id, text, depth }, i}
+			<a
+				href="#{id}"
+				class={[
+					'block py-0.5 pl-3 transition-colors hover:text-white',
+					depth != 1 && 'border-l',
+					outline[i - 1]?.depth == depth ? '' : ' mt-0.5 pt-0',
+					outline[i + 1]?.depth == depth ? '' : '',
+					activeId === id ? ' border-white font-medium text-white/90' : 'text-white/40'
+				]}
+				style="margin-left: {(depth - minDepth) * 1}rem"
+			>
+				<span class="block -translate-y-px">{text}</span>
+			</a>
+		{/each}
+	</div>
+</nav> -->

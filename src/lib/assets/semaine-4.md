@@ -128,8 +128,12 @@ Et puis finalement il me reste à terminer la page. La fin de page a comme fonct
 
 ![[Pasted image 20260223150652.png]]
 
-## Page trop petite
+## Responsive
 
 Page qui bloque le site à < 1300px de largeur. Je me suis pas fait chier.
 
 ![[Pasted image 20260223075116.png]]
+
+## Recherche
+
+Finalement, j'ai intégré les notes que j'ai prises au cours des 4 dernières semaines dans ce document (ici).

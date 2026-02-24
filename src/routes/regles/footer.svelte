@@ -24,7 +24,7 @@
 		>
 			<div class="grid grid-cols-5 px-16">
 				<div class="col-span-3 col-start-2 border-b border-white/10 py-12">
-					<div class="mb-4">Voici les règles!</div>
+					<div class="mb-4">Voici les règles&nbsp;!</div>
 
 					<div class="text-2">
 						Malgré leur simplicité, elles sont à l’origine <br /> d’un univers complexe et inattendu.
