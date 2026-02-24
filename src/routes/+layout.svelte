@@ -81,7 +81,7 @@
 		<div class="col-span-6 flex items-end">
 			<Nav {group} />
 		</div>
-		<div class="col-span-3 flex items-end justify-end">
+		<div class="items-end- col-span-3 flex justify-between">
 			<Controls />
 		</div>
 	</div>

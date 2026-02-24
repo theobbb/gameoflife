@@ -84,7 +84,7 @@
 	</div>
 </div> -->
 {#if from_game}
-	<div class="fixed top-4 left-4">
+	<div class="fixed top-gap-y left-gap">
 		<div
 			class="pointer-events-auto rounded border border-white/30 bg-white/15 p-1 text-white backdrop-blur"
 		>

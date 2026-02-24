@@ -65,6 +65,7 @@ export class Grid {
 		0: () => {
 			this.clear_grid();
 			this.updateInterval = 100;
+			this.maxGenerations = 0;
 			this.loadRLE(MAIN_RLE);
 			this.setVisibleTiles(42);
 			this.play();

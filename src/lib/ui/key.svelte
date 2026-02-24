@@ -39,7 +39,7 @@
 		<div class="absolute inset-0 translate-y-3 rounded border border-text bg-bg"></div>
 		<div
 			class={[
-				'relative z-10 h-8 w-full rounded border border-text bg-bg',
+				'relative z-10 h-9 w-full rounded border border-text bg-bg',
 				pressed ? 'translate-y-1.5' : 'group-hover:translate-y-0.5 group-active:translate-y-1.5',
 				'transition duration-50'
 			]}
