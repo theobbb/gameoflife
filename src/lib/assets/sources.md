@@ -96,3 +96,9 @@ L'intelligence artificielle a été utilisé dans ce projet.
 - https://gemini.google.com
 
 Mais pour aucun design, conception ni développement. Elle a seulement servie à optimiser le _physics engine_.
+
+---
+
+Février 2026
+
+Théo Baillargeon

@@ -1,6 +1,6 @@
 Le Jeu de la vie (un peu instructif) - Une visualisation graphique et une adaptation organique.
 
-## Prélude
+## Introduction
 
 J'ai remarqué que les moteurs de jeu en ligne (du Jeu de la vie) sont laids. Tout simplement.
 Ma théorie:
@@ -32,7 +32,7 @@ Eh bien Eureka! C'est exactement là où je veux me situer, moi. Là où les gro
 2. Une **présentation instructive** des structures et catégories les plus connues.
 3. Une vulgarisation & UX des **règles du jeu** intuitive et accessible.
 
-### 1. Un jeu organique
+## Un jeu organique
 
 J'en ai pas trouvé en ligne. Je trouve que c'est une idée géniale. D'un côté, ça défie le côté minimaliste pixel art du jeu, mais d'un autre, construire un physics engine qui simule un écosystème de genre de cellule, c'est plutôt approprié. Non?
 
@@ -69,14 +69,6 @@ C'est un raccourci visuel.
 Mais ça crée un effet incroyable.
 À mon avis 😁.
 
-### 2. Les structures
-
-Dans le jeu de la vie
-
-### 3. Les règles
-
 Fun fact: Petit caméo de Google
 
 ![[Pasted image 20260215062016.png]]
-
-Théo Baillargeon

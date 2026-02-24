@@ -23,7 +23,7 @@ Je n'ai pas vraiment fait d'esquisse à la main pour la raison suivante:
 
 Mon concept est directement relié au _game engine_ du jeu de la vie que j'ai développé. Mon premier réflexe a donc été d'expérimenter avec le code sur une page web vierge pour premièrement déterminer si l'idée que j'avais en tête était possible.
 
-Le problème avec cette approche - et d'ailleurs le problème de ma vie - c'est que je ne sépare pas le design avec le développement. Où est la limite entre les deux? J'expérimente avec le code pour voir si mon idée "design" est réalisable, et ensuite je _vibe design_ sans réellement m'assoeir et me poser les questions qu'il faut. Je dirais que j'ai plus ou moins prévu le coup cette fois ci. Dès que j'était satisfait du _game engine_, j'ai réussi calmer mes ardeurs: je suis allé dans _figma_ pour prendre le temps de comparer différentes options et de désigner pour de vrai.
+Le problème avec cette approche - et d'ailleurs le problème de ma vie - c'est que je ne sépare pas le design avec le développement. Où est la limite entre les deux? J'expérimente avec le code pour voir si mon idée "design" est réalisable, et ensuite je _vibe design_ sans réellement m'asseoir et me poser les questions qu'il faut. Je dirais que j'ai plus ou moins prévu le coup cette fois ci. Dès que j'était satisfait du _game engine_, j'ai réussi calmer mes ardeurs: je suis allé dans _figma_ pour prendre le temps de comparer différentes options et de désigner pour de vrai.
 
 Mais j'ai tout de même complètement désigner le truc en même temps que je le développais... Sauf pour quelques éléments qui m'ont fait hésiter et où je suis allé dans figma pour mettre de l'ordre dans ma tête.
 

@@ -13,7 +13,7 @@
 </script>
 
 <header
-	class="text-2 fixed top-0 right-0 left-0 z-10 flex gap-8 bg-neutral-950 px-gap py-1.5 pb-2"
+	class="text-2 fixed top-0 right-0 left-0 z-10 flex gap-8 bg-neutral-950 px-gap py-1.5 pb-2 select-none"
 	style="font-family: 'Segoe UI', sans-serif;"
 >
 	<a href="/">Le Jeu de la vie organique</a>
@@ -21,9 +21,8 @@
 	<!-- <a href="/">← Jeu</a> -->
 </header>
 <div class="relative mt-16" style="font-family: 'Segoe UI', sans-serif;">
-	<div class="mb-16"></div>
 	<div class="relative mx-auto grid max-w-7xl grid-cols-4 gap-24">
-		<div class="relative pl-24">
+		<div class="relative pl-24 select-none">
 			<nav class="sticky top-20 flex flex-col gap-2">
 				{#each data.routes as route}
 					<a
@@ -55,7 +54,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="relative">
+		<div class="relative select-none">
 			<div class="sticky top-20 pl-6"><Headings {headings} /></div>
 		</div>
 	</div>

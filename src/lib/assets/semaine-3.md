@@ -2,7 +2,7 @@ J'ai mis moins de temps cette semaine.
 
 ### Feedback
 
-Le feedback que j'ai reçu en classe par le prof et mes paires:
+Le feedback que j'ai reçu en classe par le prof et mes pairs:
 La _landing page_ est overwhelming. Premier contact avec le Jeu de la vie est violent. Trop d’infos en même temps d’un coup.
 
 ![[Pasted image 20260218170900.png]]

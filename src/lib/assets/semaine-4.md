@@ -71,7 +71,7 @@ Pas grand chose à dire ici. Je trouve ça simple et efficace.
 
 À la semaine 2, je disais que le coté informatif du site se trouvait simplement dans la présentation des différentes structures du Jeu de la vie. Mais franchement, c'est un peu léger comme dimension instructive. Il s'agit plutôt d'une présentation de mon game engine... Eh oh, tiens, dans le coin on voit le nom des structures. Super instructif !
 
-J'ai donc décidé me m'investir davantage dans la présentation des règles. Aussi, à part le prof qui connait déjà le Jeu de la vie, mes collègues de classe trouve ça bien beau mais ils comprennent pas grand chose au jeu. C'est mauvais signe.
+J'ai donc décidé m'investir davantage dans la présentation des règles. Aussi, à part le prof qui connait déjà le Jeu de la vie, mes collègues de classe trouve ça bien beau mais ils comprennent pas grand chose au jeu. C'est mauvais signe.
 
 Alors là j'ai mis le paquet. J'ai essayé d'expliquer les règles pour de vrai.
 
@@ -95,7 +95,7 @@ Pour l'instant, j'ai:
 
 Je réalise qu'en essayant de re-design-er les règles, je suis d'abord allé voir ce qui se faisait sur d'autres sites web. Mais on se rappelle, les sites web moches. Sur ces sites-là, on présente l'information de façon scientifique: efficace mais intimidante. Ce n'est pas agréable à lire pour un débutant.
 
-Je me suis donc tourner vers le visuel. Comment présente t-on les règles du jeu sur YouTube par exemple? Révélation. Beaucoup plus intuitif.
+Je me suis donc tourné vers le visuel. Comment présente t-on les règles du jeu sur YouTube par exemple? Révélation. Beaucoup plus intuitif.
 
 Notamment:
 
@@ -137,3 +137,13 @@ Page qui bloque le site à < 1300px de largeur. Je me suis pas fait chier.
 ## Recherche
 
 Finalement, j'ai intégré les notes que j'ai prises au cours des 4 dernières semaines dans ce document (ici).
+
+### Présentation
+
+![[Pasted image 20260224170415.png]]
+
+![[Pasted image 20260224170427.png]]
+
+![[Pasted image 20260224170423.png]]
+
+![[Pasted image 20260224170450.png]]
