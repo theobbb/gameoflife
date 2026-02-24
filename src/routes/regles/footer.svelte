@@ -10,7 +10,7 @@
 >
 	<div
 		class={[
-			'h-full rounded-2xl bg-neutral-900',
+			'pointer-events-auto h-full rounded-2xl bg-neutral-900',
 			grid.step == 12 ? 'delay-200-' : 'translate-y-24 opacity-0 ',
 			'transition duration-700 ease-in-out'
 		]}
@@ -56,12 +56,12 @@
 			</div>
 		</div>
 	</div>
-	<div class="text-2 mt-3 mb-12 flex items-end justify-between text-xl">
-		<a href="/" class="flex items-center gap-6">
+	<div class="text-2 pointer-events-auto mt-3 mb-12 flex items-end justify-between text-xl">
+		<a href="/" class="flex items-center gap-6 transition hover:text-text">
 			<div class="mt-0.5 icon-[ri--arrow-left-long-fill]"></div>
 			Retour à l'accueil
 		</a>
-		<a href="/recherche" class="flex items-center gap-6">
+		<a href="/recherche" class="flex items-center gap-6 transition hover:text-text">
 			Recherche
 			<div class="mt-0.5 icon-[ri--arrow-right-long-fill]"></div>
 		</a>

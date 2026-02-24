@@ -254,7 +254,7 @@
 	</div>
 </div>
 
-<div use:observer_sentinel id="12" class="relative z-1000 mt-[10svh]">
+<div use:observer_sentinel id="12" class="pointer-events-none relative z-1000 mt-[10svh]">
 	<div
 		class={[
 			grid.step == 12 ? 'delay-200-' : 'translate-y-24- opacity-0- brightness-65- ',
